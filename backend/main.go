@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
-
 	"quicc/online/keys"
+
 	custom_middlewares "quicc/online/middlewares"
 
 	"github.com/joho/godotenv"
@@ -18,6 +18,7 @@ type Order struct {
 
 func main() {
 	// Load .env file
+	// Change to a package for the config
 	err := godotenv.Load()
 	if err != nil {
 		fmt.Println("Error loading .env file")
