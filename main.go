@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"quicc/online/keys"
+	custom_middlewares "quicc/online/middlewares"
 
 	"github.com/labstack/echo/v4"
 )
@@ -24,15 +25,14 @@ func main() {
 
 	api := e.Group("/api")
 
+	protected := api.Group("")
+	protected.Use(custom_middlewares.RequireAuth(&keyStore))
+
 	api.GET("/v1/healthz", func(c echo.Context) error {
 		return c.String(http.StatusOK, "OK")
 	})
 
-	api.POST("/v1/orders", func(c echo.Context) error {
-		// Test authorization with key
-		if c.Request().Header.Get("Authorization") != "Bearer "+keyStore.Active.Key {
-			return c.String(http.StatusUnauthorized, "Unauthorized")
-		}
+	protected.POST("/v1/orders", func(c echo.Context) error {
 		newOrder := new(Order)
 		if err := c.Bind(newOrder); err != nil {
 			fmt.Printf("Error: %v\n", err)
@@ -48,10 +48,8 @@ func main() {
 			return c.String(http.StatusInternalServerError, "Unable to generate key")
 		}
 		primedKey := keyStore.Primed
-		newString := fmt.Sprintf("Key: %s\nGenerated at: %s", primedKey.Key, primedKey.GeneratedAt)
-		fmt.Println(newString)
-		keyStore.Status()
-		return c.String(http.StatusOK, newString)
+		fmt.Printf("Key: %s\nGenerated at: %s", primedKey.Key, primedKey.GeneratedAt)
+		return c.JSON(http.StatusOK, primedKey)
 	})
 
 	api.GET("/v1/use", func(c echo.Context) error {
@@ -61,10 +59,12 @@ func main() {
 		}
 		activeKey := keyStore.Active
 		activeKey.Status = "Active"
-		newString := fmt.Sprintf("Key: %s\nStatus: %s", activeKey.Key, activeKey.Status)
-		fmt.Println(newString)
-		keyStore.Status()
-		return c.String(http.StatusOK, newString)
+		fmt.Printf("Key: %s\nStatus: %s", activeKey.Key, activeKey.Status)
+		return c.JSON(http.StatusOK, activeKey)
+	})
+
+	protected.GET("/v1/verify", func(c echo.Context) error {
+		return c.String(http.StatusOK, "Verified")
 	})
 
 	e.Logger.Fatal(e.Start(":1323"))
