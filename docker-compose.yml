@@ -1,0 +1,11 @@
+services:
+  app:
+    container_name: backend
+    restart: always
+
+    volumes:
+      - ./backend:/app
+    build:
+      context: ./backend
+    ports:
+      - "1323:1323"
