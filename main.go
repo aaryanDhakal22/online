@@ -7,6 +7,7 @@ import (
 	"quicc/online/keys"
 	custom_middlewares "quicc/online/middlewares"
 
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 )
 
@@ -16,6 +17,11 @@ type Order struct {
 }
 
 func main() {
+	// Load .env file
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Error loading .env file")
+	}
 	// KeyRing Setup
 	keyStore := keys.KeyRing{}
 
@@ -25,7 +31,12 @@ func main() {
 
 	api := e.Group("/api")
 
+	admin := api.Group("")
+
+	admin.Use(custom_middlewares.AdminPasscodeMiddleware())
+
 	protected := api.Group("")
+
 	protected.Use(custom_middlewares.RequireAuth(&keyStore))
 
 	api.GET("/v1/healthz", func(c echo.Context) error {
@@ -48,18 +59,16 @@ func main() {
 			return c.String(http.StatusInternalServerError, "Unable to generate key")
 		}
 		primedKey := keyStore.Primed
-		fmt.Printf("Key: %s\nGenerated at: %s", primedKey.Key, primedKey.GeneratedAt)
 		return c.JSON(http.StatusOK, primedKey)
 	})
 
-	api.GET("/v1/use", func(c echo.Context) error {
+	admin.GET("/v1/use", func(c echo.Context) error {
 		err := keyStore.Use()
 		if err != nil {
 			return c.String(http.StatusInternalServerError, "Unable to use key")
 		}
 		activeKey := keyStore.Active
 		activeKey.Status = "Active"
-		fmt.Printf("Key: %s\nStatus: %s", activeKey.Key, activeKey.Status)
 		return c.JSON(http.StatusOK, activeKey)
 	})
 
