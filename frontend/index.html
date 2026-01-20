@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -17,7 +18,7 @@
     <main>
         <section class="flex sm:flex-row flex-col sm:gap-40 mt-10 text-4xl items-center justify-center">
             <section class="flex flex-col gap-3">
-                <textarea id="api-key-input" class="code h-48 w-80 border text-center text-xl  " name="api-key"
+                <textarea readonly id="api-key-input" class="code h-48 w-80 border text-center text-xl  " name="api-key"
                     placeholder="API Key"></textarea>
                 <button id="generate-button" class="btn uppercase " type="submit"><span
                         class="border-b-2 hover:border-b-7 transition-all duration-500 hover:border-black">Generate</span>
@@ -25,13 +26,12 @@
             <div
                 class="hidden sm:block h-[250px] min-h-[1em] w-px self-stretch bg-gradient-to-tr from-transparent via-neutral-500 to-transparent opacity-25 dark:via-neutral-400">
             </div>
-            <section class="mt-10 sm:mt-0">
-                <form class="flex flex-col gap-3 " action="/api/v1/use" method="post">
-                    <input class="border text-md p-4" type="password" name="password" placeholder="Passcode">
-                    <button class="btn uppercase" type="submit"><span
-                            class="border-b-2 hover:border-b-7 transition-all duration-500 hover:border-black">set</span>
-                    </button>
-                </form>
+            <section class="flex flex-col gap-3 mt-10 sm:mt-0">
+                <input id="password" class="border text-md p-4 text-italic italic uppercase text-center" type="password"
+                    name="password" placeholder="Passcode">
+                <button id="set-button" class="btn  uppercase" type="submit"><span
+                        class="border-b-2 hover:border-b-7 transition-all duration-500 hover:border-black">set</span>
+                </button>
 
             </section>
         </section>
@@ -66,5 +66,7 @@
 
 </body>
 <script src="script.js"></script>
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
 </html>

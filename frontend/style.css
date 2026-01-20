@@ -14,10 +14,11 @@ body {
     font-family: "Instrument Serif", serif;
     font-weight: 400;
     font-style: normal;
+    overflow-x: hidden;
 }
 
 .code {
     font-family: monospace;
-
+    resize: none;
 
 }
