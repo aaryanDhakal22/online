@@ -2,7 +2,6 @@ package custom_middlewares
 
 import (
 	"net/http"
-
 	"quicc/online/keys"
 
 	"github.com/labstack/echo/v4"

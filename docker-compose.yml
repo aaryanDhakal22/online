@@ -9,3 +9,13 @@ services:
       context: ./backend
     ports:
       - "1323:1323"
+  
+  frontend:
+    container_name: frontend
+    restart: always
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+    build:
+      context: ./frontend
+    ports:
+      - "80:80"

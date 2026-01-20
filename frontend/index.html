@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APIKey Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header class="text-5xl text-center uppercase mt-4">API Key Generator</header>
+    <main>
+        <section class="flex sm:flex-row flex-col sm:gap-40 mt-10 text-4xl items-center justify-center">
+            <section class="flex flex-col gap-3">
+                <textarea id="api-key-input" class="code h-48 w-80 border text-center text-xl  " name="api-key"
+                    placeholder="API Key"></textarea>
+                <button id="generate-button" class="btn uppercase " type="submit"><span
+                        class="border-b-2 hover:border-b-7 transition-all duration-500 hover:border-black">Generate</span>
+            </section>
+            <div
+                class="hidden sm:block h-[250px] min-h-[1em] w-px self-stretch bg-gradient-to-tr from-transparent via-neutral-500 to-transparent opacity-25 dark:via-neutral-400">
+            </div>
+            <section class="mt-10 sm:mt-0">
+                <form class="flex flex-col gap-3 " action="/api/v1/use" method="post">
+                    <input class="border text-md p-4" type="password" name="password" placeholder="Passcode">
+                    <button class="btn uppercase" type="submit"><span
+                            class="border-b-2 hover:border-b-7 transition-all duration-500 hover:border-black">set</span>
+                    </button>
+                </form>
+
+            </section>
+        </section>
+        <section class="text-center text-xl p-4 sm:text-3xl mt-20">
+            <h1 class="text-4xl"> HOW TO? </h1>
+            <p class="text-2xl mt-8 uppercase "> 1. Generate API Key </p>
+            <div class=" text-lg  text-gray-600">Click generate to generate a new 32-character API key to be used as the
+                authorization token.<br>
+                Generating doesn't necessarily set the key, it just generates it.
+            </div>
+
+
+            <p class="text-2xl mt-8 uppercase "> 2. Enter the Passcode and set API Key </p>
+
+            <div class=" text-lg  text-gray-600">Enter the passcode to set the API key as the active token. <br>
+                Every request made to the server will now be authenticated with the API key. <br>
+                Setting the key also copies it to the clipboard.
+            </div>
+
+            <p class="text-2xl mt-8 uppercase "> 3. Use the API Key to send requests </p>
+            <div class=" text-lg  text-gray-600">
+                Finally, store the API key in a safe place, as it is the only way to authenticate with the server.<br>
+                In case you lose the key or someone else steals it, you can generate a new one and set it as the active
+                token.<br>
+                Every future request made to the server will be authenticated with the new key.<br>
+            </div>
+        </section>
+    </main>
+
+
+
+
+</body>
+<script src="script.js"></script>
+
+</html>
