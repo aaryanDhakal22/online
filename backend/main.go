@@ -70,7 +70,7 @@ func main() {
 		return c.JSON(http.StatusOK, primedKey)
 	})
 
-	admin.GET("/v1/use", func(c echo.Context) error {
+	admin.GET("/v1/set", func(c echo.Context) error {
 		err := keyStore.Use()
 		if err != nil {
 			return c.String(http.StatusInternalServerError, "Unable to use key")

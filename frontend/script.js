@@ -1,3 +1,6 @@
+// Possible routes:
+const apiUrl = "https://quicconline.rndhkl.com/api/v1";
+// const apiUrl = "http://localhost:1323/api/v1/set";
 function copyAndNotify(apiKeyInput) {
     // Copy the API key to the clipboard
     apiKeyInput.select();
@@ -38,8 +41,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const password = document.querySelector("#password");
 
     setButton.addEventListener("click", function() {
-        const api = fetch("http://localhost:1323/api/v1/set", {
-            method: "POST",
+        const api = fetch(apiUrl + "/set", {
+            method: "GET",
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json",
@@ -48,19 +51,20 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
         api.then((response) => {
-            console.log(response);
+            //console.log(response);
             if (response.ok) {
                 return response.json();
             } else {
-                throw new Error("Something went wrong");
+
                 notify("Something went wrong !", "error");
+                throw new Error("Something went wrong");
             }
         }).then((data) => {
-            console.log(data);
+            //console.log(data);
             const apiKey = data.key;
             const apiKeyInput = document.querySelector("#api-key-input");
             apiKeyInput.value = apiKey;
-            console.log(apiKey);
+            //console.log(apiKey);
             copyAndNotify(apiKeyInput);
         }).catch((error) => {
             console.error(error);
@@ -68,7 +72,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
     generateButton.addEventListener("click", function() {
-        const api = fetch("http://localhost:1323/api/v1/generate", {
+        const api = fetch(apiUrl + "/generate", {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -77,19 +81,19 @@ document.addEventListener("DOMContentLoaded", function() {
             },
         });
         api.then((response) => {
-            console.log(response);
+            //console.log(response);
             if (response.ok) {
                 return response.json();
             } else {
-                throw new Error("Something went wrong");
                 notify("Something went wrong !", "error");
+                throw new Error("Something went wrong");
             }
         }).then((data) => {
-            console.log(data);
+            //console.log(data);
             const apiKey = data.key;
             const apiKeyInput = document.querySelector("#api-key-input");
             apiKeyInput.value = apiKey;
-            console.log(apiKey);
+            //console.log(apiKey);
             copyAndNotify(apiKeyInput);
         }).catch((error) => {
             console.error(error);

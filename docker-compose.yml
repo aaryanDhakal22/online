@@ -1,21 +1,42 @@
 services:
   app:
-    container_name: backend
+    container_name: quicc_online_backend
     restart: always
-
     volumes:
       - ./backend:/app
     build:
       context: ./backend
-    ports:
-      - "1323:1323"
+    networks:
+      - api_gen
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.quicc_api.rule=Host(`quicconline.rndhkl.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.quicc_api.entrypoints=websecure"
+      - "traefik.http.services.quicc_api.loadbalancer.server.port=1323"
+      - "traefik.http.routers.quicc_api.tls=true"
+      - "traefik.http.routers.quicc_api.tls.certresolver=cloudflare"
   
   frontend:
-    container_name: frontend
+    container_name: quicc_online_frontend
     restart: always
+    networks:
+      - api_gen
+      - proxy
     volumes:
       - ./frontend:/usr/share/nginx/html
     build:
       context: ./frontend
-    ports:
-      - "80:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.quicc_frontend.rule=Host(`quicconline.rndhkl.com`)"
+      - "traefik.http.routers.quicc_frontend.entrypoints=websecure"
+      - "traefik.http.services.quicc_frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.quicc_frontend.tls=true"
+      - "traefik.http.routers.quicc_frontend.tls.certresolver=cloudflare"
+      - "traefik.docker.network=proxy"
+
+networks:
+  api_gen:
+    driver: bridge
+  proxy:
+    external: true
