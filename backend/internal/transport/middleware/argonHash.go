@@ -3,29 +3,21 @@ package custom_middlewares
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/labstack/echo/v4"
 )
 
-func AdminPasscodeMiddleware() echo.MiddlewareFunc {
-	encodedHash := strings.TrimSpace(os.Getenv("ADMIN_PASS_HASH"))
-	if encodedHash == "" {
-		panic("ADMIN_PASS_HASH not set")
-	}
+func AdminPasscodeMiddleware(ADMIN_PASS_HASH string) echo.MiddlewareFunc {
+	encodedHash := ADMIN_PASS_HASH
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			pass := extractBearer(c.Request().Header.Get("Authorization"))
-			if pass == "" {
-				pass = strings.TrimSpace(c.Request().Header.Get("X-Admin-Passcode"))
-			}
+			pass := strings.TrimSpace(c.Request().Header.Get("X-Admin-Passcode"))
 			if pass == "" {
 				return echo.NewHTTPError(http.StatusUnauthorized, "missing admin passcode")
 			}
-
 			match, err := argon2id.ComparePasswordAndHash(pass, encodedHash)
 			fmt.Println("The match is: ", match)
 			if err != nil || !match {
@@ -35,12 +27,4 @@ func AdminPasscodeMiddleware() echo.MiddlewareFunc {
 			return next(c)
 		}
 	}
-}
-
-func extractBearer(h string) string {
-	const p = "Bearer "
-	if len(h) > len(p) && strings.EqualFold(h[:len(p)], p) {
-		return strings.TrimSpace(h[len(p):])
-	}
-	return ""
 }

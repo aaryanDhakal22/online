@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS api_keys (
+    id VARCHAR(255) NOT NULL,
+    key VARCHAR(255) NOT NULL,
+    status VARCHAR(255) NOT NULL,
+    PRIMARY KEY (id)
+);
+
+
