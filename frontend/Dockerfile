@@ -1,5 +1,3 @@
-LABEL org.opencontainers.image.source="https://github.com/OWNER/REPO"
-
 FROM nginx:alpine
 
 COPY . /usr/share/nginx/html
