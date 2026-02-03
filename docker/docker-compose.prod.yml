@@ -6,24 +6,20 @@ services:
       - ../.env
     container_name: quicc_online_backend
     restart: always
-    volumes:
-      - ../backend:/app
     ports:
       - "1323:1323"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   frontend:
     image: ghcr.io/quiccpos/online-frontend:latest
     container_name: quicc_online_frontend
     restart: always
-    volumes:
-      - ../frontend:/usr/share/nginx/html
     ports:
       - "80:80"
     depends_on:
       - api 
-      - redis
 
   redis:
     container_name: quicc_online_redis

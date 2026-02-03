@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
 	"quicc/online/internal/infra/config"
 	"quicc/online/internal/infra/database/models"
 	"quicc/online/internal/infra/database/repositories"
@@ -20,7 +21,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	// Import sqlite3 driver
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 func main() {

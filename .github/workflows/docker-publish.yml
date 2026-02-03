@@ -18,9 +18,12 @@ jobs:
           - name: api
             context: ./backend
             image: ghcr.io/quiccpos/online-api
+            target: api
+
           - name: frontend
             context: ./frontend
             image: ghcr.io/quiccpos/online-frontend
+            target: ""
     steps:
       - name: Checkout
         uses: actions/checkout@v4

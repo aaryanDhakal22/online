@@ -1,0 +1,14 @@
+.git
+.gitignore
+**/*.log
+**/*.tmp
+**/*.swp
+**/.DS_Store
+
+bin/
+dist/
+tmp/
+coverage/
+vendor/
+
+

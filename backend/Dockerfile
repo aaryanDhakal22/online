@@ -1,29 +1,75 @@
-# Use golang with air for development
-FROM golang:1.25.6-alpine3.23
+########## BASE IMAGE ##########
+# Setup the base image for dependencies
+FROM golang:1.25.6-bookworm AS builder
 
 # Set the working directory
-WORKDIR /app
+WORKDIR /src
 
-# Copy the source code into the container
+ENV CGO_ENABLED=0 \
+    GOOS=linux \
+    GOPROXY=https://proxy.golang.org,direct \
+    GOMODCACHE=/go/pkg/mod \
+    GOCACHE=/root/.cache/go-build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY go.mod go.sum ./
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
+
+#####################################
+##        PRODUCTION IMAGE        ##
+#####################################
+FROM builder AS prod
+
 COPY . .
 
-# Install the dependencies
-RUN go mod download
+ARG MAIN=./cmd/server
+ARG BIN=app
 
-# Install the air CLI
-RUN go install github.com/air-verse/air@latest
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go build -trimpath \
+    -ldflags="-w -s" \
+    -o /out/${BIN} \
+    ${MAIN}
 
-# Install extra dev dependencies to build CGO binaries
-RUN apk add --no-cache gcc musl-dev
+#####################################
+##        PRODUCTION RUNTIME IMAGE ##
+#####################################
 
-# Install the sqlc CLI
-# RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+FROM gcr.io/distroless/base-debian11:nonroot AS runtime
 
-# Run sqlc to generate the database models
-# RUN sqlc -f ./sql/sqlc.yaml generate
+WORKDIR /app
 
-# Expose the port
+ARG BIN=app
+COPY --from=prod /out/${BIN} /app/${BIN}
+
 EXPOSE 1323
 
-# Run the application
-CMD ["air"  , "-c", ".air.toml"]
+ENTRYPOINT ["/app/app"]
+
+#####################################
+##        DEVELOPMENT IMAGE        ##
+#####################################
+FROM builder AS dev
+
+ARG AIR_VERSION=v1.64.5
+ARG SQLC_VERSION=v1.30.0
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go install github.com/cosmtrek/air@${AIR_VERSION} && \
+    go install github.com/kyleconroy/sqlc/cmd/sqlc@${SQLC_VERSION}
+
+COPY . .
+
+EXPOSE 1323
+
+CMD ["air" , "-c", ".air.toml"]
+
