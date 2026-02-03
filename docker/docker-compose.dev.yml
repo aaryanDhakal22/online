@@ -1,0 +1,42 @@
+services:
+  api:
+    env_file:
+      - ../backend/.env
+      - ../.env
+    container_name: quicc_online_backend
+    restart: always
+    volumes:
+      - ../backend:/app
+    build:
+      context: ../backend
+    ports:
+      - "1323:1323"
+    depends_on:
+      - redis
+
+  frontend:
+    container_name: quicc_online_frontend
+    restart: always
+    volumes:
+      - ../frontend:/usr/share/nginx/html
+    build:
+      context: ../frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api 
+      - redis
+
+  redis:
+    container_name: quicc_online_redis
+    restart: always
+    image: redis:alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASS}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "${REDIS_PORT}:6379"
+    command: ["redis-server", "--requirepass", "${REDIS_PASS}"]
+

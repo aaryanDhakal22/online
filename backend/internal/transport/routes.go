@@ -26,7 +26,24 @@ func RegisterRoutes(e *echo.Echo, cms *CMS, handler *handler.Handler) {
 
 	protected.Use(cms.AuthMiddleware)
 
-	protected.POST("/ke
-
 	admin := api.Group("")
+
+	admin.Use(cms.AdminMiddleware)
+
+	// protected.POST("/v1/orders", func(c echo.Context) error {
+	// 	newOrder := new(Order)
+	// 	if err := c.Bind(newOrder); err != nil {
+	// 		fmt.Printf("Error: %v\n", err)
+	// 		return c.String(http.StatusBadRequest, err.Error())
+	// 	}
+	// 	fmt.Printf("New order was created: %v\n", newOrder)
+	// 	return c.JSON(http.StatusCreated, newOrder)
+	// })
+	//
+
+	v1.GET("/generate", handler.Generate)
+
+	admin.GET("/set", handler.Set)
+
+	protected.GET("/v1/verify", handler.Verify)
 }

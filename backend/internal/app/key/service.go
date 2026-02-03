@@ -48,55 +48,27 @@ func (s *KeyService) Generate(cmd GenerateKeyCommand) (*GenerateKeyResult, error
 	}, nil
 }
 
-func (s *KeyService) GetActive(cmd GetActiveKeyCommand) (*GetActiveKeyResult, error) {
-	activeKey, err := s.keyRepo.GetActive(context.Background())
+func (s *KeyService) Set(cmd SetKeyCommand) (*SetKeyResult, error) {
+	// Get the API key
+	key, err := s.keyRepo.GetPrimed(context.TODO())
 	if err != nil {
 		return nil, err
 	}
-	return &GetActiveKeyResult{
-		ID:  activeKey.ID,
-		Key: activeKey.Key,
-	}, nil
-}
+	// Deactivate other API keys
+	if err := s.keyRepo.DeactivateAllKeys(context.TODO()); err != nil {
+		return nil, err
+	}
 
-func (s *KeyService) GetPrimed(cmd GetPrimedKeyCommand) (*GetPrimedKeyResult, error) {
-	primedKey, err := s.keyRepo.GetPrimed(context.TODO())
-	if err != nil {
+	// Set the API key status
+	if err := s.keyRepo.Activate(context.TODO(), key.ID); err != nil {
 		return nil, err
 	}
-	return &GetPrimedKeyResult{
-		ID:  primedKey.ID,
-		Key: primedKey.Key,
-	}, nil
-}
 
-func (s *KeyService) GetByID(cmd GetKeyByIDCommand) (*GetKeyByIDResult, error) {
-	key, err := s.keyRepo.GetByID(context.TODO(), cmd.ID)
-	if err != nil {
-		return nil, err
-	}
-	return &GetKeyByIDResult{
+	// Update the redis key
+	s.rd.Set(context.TODO(), "active_key", key.Key, 0)
+
+	return &SetKeyResult{
 		ID:  key.ID,
 		Key: key.Key,
-	}, nil
-}
-
-func (s *KeyService) Activate(cmd ActivateKeyCommand) (*ActivateKeyResult, error) {
-	err := s.keyRepo.Activate(context.TODO(), cmd.ID)
-	if err != nil {
-		return nil, err
-	}
-	return &ActivateKeyResult{
-		ID: cmd.ID,
-	}, nil
-}
-
-func (s *KeyService) Deactivate(cmd DeactivateKeyCommand) (*DeactivateKeyResult, error) {
-	err := s.keyRepo.Deactivate(context.TODO(), cmd.ID)
-	if err != nil {
-		return nil, err
-	}
-	return &DeactivateKeyResult{
-		ID: cmd.ID,
 	}, nil
 }

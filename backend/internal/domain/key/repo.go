@@ -10,7 +10,7 @@ type Repository interface {
 	GetPrimed(ctx context.Context) (*APIKey, error)
 	GetByID(ctx context.Context, id string) (*APIKey, error)
 	Activate(ctx context.Context, id string) error
-	Deactivate(ctx context.Context, id string) error
+	DeactivateAllKeys(ctx context.Context) error
 	UnprimeAll(ctx context.Context) error
 	Delete(ctx context.Context, id string) error
 }

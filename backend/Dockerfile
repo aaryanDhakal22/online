@@ -13,6 +13,15 @@ RUN go mod download
 # Install the air CLI
 RUN go install github.com/air-verse/air@latest
 
+# Install extra dev dependencies to build CGO binaries
+RUN apk add --no-cache gcc musl-dev
+
+# Install the sqlc CLI
+# RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+# Run sqlc to generate the database models
+# RUN sqlc -f ./sql/sqlc.yaml generate
+
 # Expose the port
 EXPOSE 1323
 

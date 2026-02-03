@@ -1,29 +1,33 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"net/http"
-
-	keyApp "quicc/online/internal/app/key"
 	"quicc/online/internal/infra/config"
 	"quicc/online/internal/infra/database/models"
 	"quicc/online/internal/infra/database/repositories"
 	"quicc/online/internal/shared"
 	"quicc/online/internal/transport"
+
+	keyApp "quicc/online/internal/app/key"
+
 	handler "quicc/online/internal/transport/handlers"
 	custom_middlewares "quicc/online/internal/transport/middleware"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
+
+	// Import sqlite3 driver
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
 	// Load .env file
 	err := godotenv.Load()
 	if err != nil {
-		fmt.Println("Error loading .env file")
+		fmt.Println("Error loading .env file, please check your .env file")
 	}
 
 	// Config Setup
@@ -40,12 +44,26 @@ func main() {
 	}
 	defer db.Close()
 
+	logger.Info().Msg("Connected to database")
 	// Setup Redis
+	logger.Info().Msg("Connecting to Redis")
+	logger.Info().Msg(fmt.Sprintf("Connecting to Redis on %s", cfg.RedisPort))
+
+	logger.Info().Msg(fmt.Sprintf("Connecting to Redis with password %s", cfg.RedisPassword))
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     cfg.RedisHost,
+		Addr:     fmt.Sprintf("redis:%s", cfg.RedisPort),
 		Password: cfg.RedisPassword,
 		DB:       0,
 	})
+	// Test Redis
+	logger.Info().Msg("Testing Redis connection")
+	_, err = redisClient.Ping(context.Background()).Result()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Error connecting to Redis")
+		return
+	}
+	logger.Info().Msg("Connected to Redis")
+
 	// Setup KeyStore
 	keyQueries := models.New(db)
 	keyStore := repositories.NewKeyRepository(keyQueries, logger)
@@ -66,42 +84,5 @@ func main() {
 		AdminMiddleware: adminMiddleware,
 	}, handler)
 
-	api.GET("/v1/healthz", func(c echo.Context) error {
-		return c.String(http.StatusOK, "OK")
-	})
-
-	protected.POST("/v1/orders", func(c echo.Context) error {
-		newOrder := new(Order)
-		if err := c.Bind(newOrder); err != nil {
-			fmt.Printf("Error: %v\n", err)
-			return c.String(http.StatusBadRequest, err.Error())
-		}
-		fmt.Printf("New order was created: %v\n", newOrder)
-		return c.JSON(http.StatusCreated, newOrder)
-	})
-
-	api.GET("/v1/generate", func(c echo.Context) error {
-		err := keyStore.Generate()
-		if err != nil {
-			return c.String(http.StatusInternalServerError, "Unable to generate key")
-		}
-		primedKey := keyStore.Primed
-		return c.JSON(http.StatusOK, primedKey)
-	})
-
-	admin.GET("/v1/set", func(c echo.Context) error {
-		err := keyStore.Use()
-		if err != nil {
-			return c.String(http.StatusInternalServerError, "Unable to use key")
-		}
-		activeKey := keyStore.Active
-		activeKey.Status = "Active"
-		return c.JSON(http.StatusOK, activeKey)
-	})
-
-	protected.GET("/v1/verify", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Verified")
-	})
-
-	e.Logger.Fatal(e.Start(":1323"))
+	transport.StartServer(context.Background(), server, cfg.ServerPort)
 }

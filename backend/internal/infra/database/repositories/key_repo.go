@@ -58,8 +58,8 @@ func (r *KeyRepository) Activate(ctx context.Context, id string) error {
 	return r.db.ActivateKey(ctx, id)
 }
 
-func (r *KeyRepository) Deactivate(ctx context.Context, id string) error {
-	return r.db.DeactivateKey(ctx, id)
+func (r *KeyRepository) DeactivateAllKeys(ctx context.Context) error {
+	return r.db.DeactivateKey(ctx)
 }
 
 // Unprime the previous key

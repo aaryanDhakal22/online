@@ -16,7 +16,7 @@ type Config struct {
 	LogOutput     io.Writer
 	LogStyle      string
 	ServerPort    string
-	RedisHost     string
+	RedisPort     string
 	RedisPassword string
 	AdminPassHash string
 }
@@ -31,7 +31,7 @@ func NewConfig() *Config {
 	if config.ServerPort == "" {
 		config.ServerPort = "1323"
 	}
-	config.RedisHost = getEnv("REDIS_HOST")
+	config.RedisPort = getEnv("REDIS_PORT")
 	config.RedisPassword = getEnv("REDIS_PASSWORD")
 	config.AdminPassHash = getEnv("ADMIN_PASS_HASH")
 

@@ -5,6 +5,11 @@ type GenerateKeyResult struct {
 	Key string `json:"key"`
 }
 
+type SetKeyResult struct {
+	ID  string `json:"id,omitempty"`
+	Key string `json:"key,omitempty"`
+}
+
 // Result
 type GetActiveKeyResult struct {
 	ID  string `json:"id,omitempty"`

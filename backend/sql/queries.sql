@@ -17,7 +17,7 @@ DELETE FROM api_keys WHERE id = :id;
 UPDATE api_keys SET status = 'active' WHERE id = :id;
 
 -- name: DeactivateKey :exec
-UPDATE api_keys SET status = 'inactive' WHERE id = :id;
+UPDATE api_keys Set status = 'inactive' WHERE status = 'active';
 
 -- name: UnprimeAll :exec
 UPDATE api_keys SET status = 'inactive' WHERE status = 'primed';

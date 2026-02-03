@@ -1,12 +1,8 @@
 package keyApp
 
 type (
-	GenerateKeyCommand  struct{}
-	GetActiveKeyCommand struct{}
-	GetPrimedKeyCommand struct{}
-	GetKeyByIDCommand   struct {
-		ID string
-	}
+	GenerateKeyCommand struct{}
+	SetKeyCommand      struct{}
 )
 
 type ActivateKeyCommand struct {

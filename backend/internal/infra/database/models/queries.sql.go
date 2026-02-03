@@ -34,11 +34,11 @@ func (q *Queries) CreateKey(ctx context.Context, arg CreateKeyParams) error {
 }
 
 const deactivateKey = `-- name: DeactivateKey :exec
-UPDATE api_keys SET status = 'inactive' WHERE id = ?1
+UPDATE api_keys Set status = 'inactive' WHERE status = 'active'
 `
 
-func (q *Queries) DeactivateKey(ctx context.Context, id string) error {
-	_, err := q.exec(ctx, q.deactivateKeyStmt, deactivateKey, id)
+func (q *Queries) DeactivateKey(ctx context.Context) error {
+	_, err := q.exec(ctx, q.deactivateKeyStmt, deactivateKey)
 	return err
 }
 

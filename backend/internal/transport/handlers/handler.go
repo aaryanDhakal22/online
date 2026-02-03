@@ -31,3 +31,19 @@ func (h *Handler) Generate(c echo.Context) error {
 		Key: newKey.Key,
 	})
 }
+
+func (h *Handler) Set(c echo.Context) error {
+	key, err := h.keySvc.Set(keyApp.SetKeyCommand{})
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Unable to set key")
+	}
+
+	return c.JSON(http.StatusOK, keyApp.SetKeyResult{
+		ID:  key.ID,
+		Key: key.Key,
+	})
+}
+
+func (h *Handler) Verify(c echo.Context) error {
+	return c.String(http.StatusOK, "Verified")
+}

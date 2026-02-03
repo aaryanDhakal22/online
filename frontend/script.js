@@ -1,6 +1,6 @@
 // Possible routes:
-const apiUrl = "https://quicconline.rndhkl.com/api/v1";
-// const apiUrl = "http://localhost:1323/api/v1/set";
+// const apiUrl = "https://quicconline.rndhkl.com/api/v1";
+const apiUrl = "http://api:1323/api/v1";
 function copyAndNotify(apiKeyInput) {
     // Copy the API key to the clipboard
     apiKeyInput.select();
@@ -39,6 +39,24 @@ document.addEventListener("DOMContentLoaded", function() {
     const generateButton = document.querySelector("#generate-button");
     const setButton = document.querySelector("#set-button");
     const password = document.querySelector("#password");
+
+    fetch(apiUrl + "/healthz", {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Access-Control-Allow-Origin": "*",
+        },
+    }).then((response) => {
+        console.log(response);
+        if (response.ok) {
+            return response.json();
+        } else {
+            notify("Unable to connect to server !", "error");
+            throw new Error("Unable to connect to server");
+        }
+
+    })
 
     setButton.addEventListener("click", function() {
         const api = fetch(apiUrl + "/set", {
