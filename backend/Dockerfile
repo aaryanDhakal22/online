@@ -64,7 +64,7 @@ ARG SQLC_VERSION=v1.30.0
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    go install github.com/cosmtrek/air@${AIR_VERSION} && \
+    go install github.com/air-verse/air@${AIR_VERSION} && \
     go install github.com/kyleconroy/sqlc/cmd/sqlc@${SQLC_VERSION}
 
 COPY . .
