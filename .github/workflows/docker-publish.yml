@@ -18,7 +18,7 @@ jobs:
           - name: api
             context: ./backend
             image: ghcr.io/quiccpos/online-api
-            target: api
+            target: runtime
 
           - name: frontend
             context: ./frontend
@@ -79,13 +79,13 @@ jobs:
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
 
             # Pull and restart using prod compose
-            docker compose -f docker-compose.prod.yaml pull
-            docker compose -f docker-compose.prod.yaml up -d
+            docker-compose -f docker-compose.prod.yaml pull
+            docker-compose -f docker-compose.prod.yaml up -d
 
             # Cleanup old layers
             docker image prune -f
 
             # Optional: show status
-            docker compose -f docker-compose.prod.yaml ps
+            docker-compose -f docker-compose.prod.yaml ps
           EOF
 

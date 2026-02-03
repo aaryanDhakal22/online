@@ -40,21 +40,6 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     ${MAIN}
 
 #####################################
-##        PRODUCTION RUNTIME IMAGE ##
-#####################################
-
-FROM gcr.io/distroless/base-debian11:nonroot AS runtime
-
-WORKDIR /app
-
-ARG BIN=app
-COPY --from=prod /out/${BIN} /app/${BIN}
-
-EXPOSE 1323
-
-ENTRYPOINT ["/app/app"]
-
-#####################################
 ##        DEVELOPMENT IMAGE        ##
 #####################################
 FROM builder AS dev
@@ -72,4 +57,19 @@ COPY . .
 EXPOSE 1323
 
 CMD ["air" , "-c", ".air.toml"]
+
+#####################################
+##        PRODUCTION RUNTIME IMAGE ##
+#####################################
+
+FROM gcr.io/distroless/base-debian11:nonroot AS runtime
+
+WORKDIR /app
+
+ARG BIN=app
+COPY --from=prod /out/${BIN} /app/${BIN}
+
+EXPOSE 1323
+
+ENTRYPOINT ["/app/app"]
 
