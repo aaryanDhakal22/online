@@ -35,4 +35,10 @@ func RegisterRoutes(e *echo.Echo, cms *CMS, handler *handler.Handler) {
 	admin.GET("/set", handler.Set)
 
 	protected.GET("/v1/verify", handler.Verify)
+
+	protected.POST("/v1/orders", handler.CreateOrder)
+
+	protected.GET("/v1/orders/todays", handler.GetTodaysOrders)
+
+	protected.GET("/v1/orders/latest", handler.GetLatestOrder)
 }

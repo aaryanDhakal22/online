@@ -12,6 +12,7 @@ import (
 	"quicc/online/internal/transport"
 
 	keyApp "quicc/online/internal/app/key"
+	orderApp "quicc/online/internal/app/order"
 
 	handler "quicc/online/internal/transport/handlers"
 	custom_middlewares "quicc/online/internal/transport/middleware"
@@ -90,12 +91,17 @@ func main() {
 	keyStore := repositories.NewKeyRepository(keyQueries, logger)
 	keyService := keyApp.NewKeyService(keyStore, redisClient, logger)
 
+	// Setup OrderStore
+	orderQueries := models.New(db)
+	orderStore := repositories.NewOrderRepository(orderQueries, logger)
+	orderService := orderApp.NewOrderService(orderStore, redisClient, logger)
+
 	// Setup Middlewares
 	authMiddleware := custom_middlewares.RequireAuth(redisClient)
 	adminMiddleware := custom_middlewares.AdminPasscodeMiddleware(cfg.AdminPassHash)
 
 	// Setup Handlers
-	handler := handler.NewHandler(keyService, logger)
+	handler := handler.NewHandler(keyService, orderService, logger)
 
 	// Setup Server
 	server := echo.New()

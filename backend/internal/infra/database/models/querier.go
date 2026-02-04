@@ -11,11 +11,17 @@ import (
 type Querier interface {
 	ActivateKey(ctx context.Context, id string) error
 	CreateKey(ctx context.Context, arg CreateKeyParams) error
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (string, error)
 	DeactivateKey(ctx context.Context) error
 	DeleteKey(ctx context.Context, id string) error
+	DeleteOrder(ctx context.Context, id string) error
 	GetActiveKey(ctx context.Context) (ApiKey, error)
 	GetKeyByID(ctx context.Context, id string) (ApiKey, error)
+	GetLatestOrder(ctx context.Context) (Order, error)
+	GetOrderByID(ctx context.Context, id string) (Order, error)
+	GetOrders(ctx context.Context) ([]Order, error)
 	GetPrimedKey(ctx context.Context) (ApiKey, error)
+	GetTodaysOrders(ctx context.Context) ([]Order, error)
 	UnprimeAll(ctx context.Context) error
 }
 
