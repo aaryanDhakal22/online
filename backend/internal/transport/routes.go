@@ -22,24 +22,13 @@ func RegisterRoutes(e *echo.Echo, cms *CMS, handler *handler.Handler) {
 		return c.String(http.StatusOK, "OK")
 	})
 
-	protected := api.Group("")
+	protected := v1.Group("")
 
 	protected.Use(cms.AuthMiddleware)
 
-	admin := api.Group("")
+	admin := v1.Group("")
 
 	admin.Use(cms.AdminMiddleware)
-
-	// protected.POST("/v1/orders", func(c echo.Context) error {
-	// 	newOrder := new(Order)
-	// 	if err := c.Bind(newOrder); err != nil {
-	// 		fmt.Printf("Error: %v\n", err)
-	// 		return c.String(http.StatusBadRequest, err.Error())
-	// 	}
-	// 	fmt.Printf("New order was created: %v\n", newOrder)
-	// 	return c.JSON(http.StatusCreated, newOrder)
-	// })
-	//
 
 	v1.GET("/generate", handler.Generate)
 

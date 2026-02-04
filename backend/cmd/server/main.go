@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"quicc/online/internal/infra/config"
 	"quicc/online/internal/infra/database/models"
 	"quicc/online/internal/infra/database/repositories"
@@ -18,13 +19,29 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 
 	// Import sqlite3 driver
 	_ "modernc.org/sqlite"
 )
 
+func applySchema(db *sql.DB) {
+	// Open the schema file
+	schemaFile, err := os.ReadFile("sql/schema.sql")
+	if err != nil {
+		fmt.Println("Error opening schema file")
+		panic(err)
+	}
+	log.Info().Msg("Schema file opened")
+	if _, err := db.Exec(string(schemaFile)); err != nil {
+		fmt.Println("Error applying schema")
+		panic(err)
+	}
+	log.Info().Msg("Schema applied")
+}
+
 func main() {
-	// Load .env file
+	// Load .env filez
 	err := godotenv.Load()
 	if err != nil {
 		fmt.Println("Error loading .env file, please check your .env file")
@@ -42,9 +59,13 @@ func main() {
 		logger.Fatal().Err(err).Msg("Error opening database")
 		return
 	}
+
+	applySchema(db)
+
 	defer db.Close()
 
 	logger.Info().Msg("Connected to database")
+
 	// Setup Redis
 	logger.Info().Msg("Connecting to Redis")
 	logger.Info().Msg(fmt.Sprintf("Connecting to Redis on %s", cfg.RedisPort))
