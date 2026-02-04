@@ -79,6 +79,8 @@ func main() {
 	// Setup Server
 	server := echo.New()
 
+	transport.AddDefaultMiddlewares(server)
+
 	transport.RegisterRoutes(server, &transport.CMS{
 		AuthMiddleware:  authMiddleware,
 		AdminMiddleware: adminMiddleware,

@@ -1,14 +1,14 @@
 services:
   api:
     env_file:
-      - ../backend/.env
       - ../.env
     container_name: quicc_online_backend
+    build:
+      context: ../backend
+      target: dev
     restart: always
     volumes:
       - ../backend:/app
-    build:
-      context: ../backend
     ports:
       - "1323:1323"
     depends_on:

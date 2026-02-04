@@ -1,6 +1,7 @@
 // Possible routes:
 // const apiUrl = "https://quicconline.rndhkl.com/api/v1";
-const apiUrl = "http://api:1323/api/v1";
+const apiUrl = "http://100.87.73.92:1323/api/v1";
+//const apiUrl = "http://localhost:1323/api/v1";
 function copyAndNotify(apiKeyInput) {
     // Copy the API key to the clipboard
     apiKeyInput.select();

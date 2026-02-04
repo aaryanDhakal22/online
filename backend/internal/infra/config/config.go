@@ -32,7 +32,7 @@ func NewConfig() *Config {
 		config.ServerPort = "1323"
 	}
 	config.RedisPort = getEnv("REDIS_PORT")
-	config.RedisPassword = getEnv("REDIS_PASSWORD")
+	config.RedisPassword = getEnv("REDIS_PASS")
 	config.AdminPassHash = getEnv("ADMIN_PASS_HASH")
 
 	return &config
