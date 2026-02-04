@@ -2,8 +2,7 @@ services:
   api:
     image: ghcr.io/quiccpos/online-api:latest
     env_file:
-      - ../backend/.env
-      - ../.env
+      - .env
     container_name: quicc_online_backend
     restart: always
     ports:
