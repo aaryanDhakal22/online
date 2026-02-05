@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 vars:
   DEV_COFIG: ./docker/docker-compose.dev.yml
@@ -15,7 +15,7 @@ tasks:
   devup:
     desc: Start the development environment
     cmds:
-      - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} up 
+      - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} up
 
   devdown:
     desc: Stop the development environment
@@ -31,7 +31,7 @@ tasks:
     desc: Restart the development environment
     cmds:
       - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} down
-      - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} up 
+      - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} up
 
   devreset:
     desc: Reset the development environment
@@ -40,3 +40,15 @@ tasks:
       - docker compose -f {{.DEV_COFIG}} down --rmi all
       - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} up --build
 
+  gen-env:
+    desc: Generate .env file
+    cmds:
+      - touch {{.ENV_FILE}}
+      - echo "APP_ENV=development" >> {{.ENV_FILE}}
+      - echo "LOG_LEVEL=info" >> {{.ENV_FILE}}
+      - echo "LOG_OUTPUT=standard" >> {{.ENV_FILE}}
+      - echo "LOG_STYLE=json" >> {{.ENV_FILE}}
+      - echo "SERVER_PORT=1323" >> {{.ENV_FILE}}
+      - echo "REDIS_PORT=6379" >> {{.ENV_FILE}}
+      - echo "REDIS_PASS=testing" >> {{.ENV_FILE}}
+      - echo "# ARGON2ID == version=19, memory=64000, time=3, parallelism=2, salt=lombardis" >> {{.ENV_FILE}}

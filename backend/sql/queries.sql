@@ -21,3 +21,25 @@ UPDATE api_keys Set status = 'inactive' WHERE status = 'active';
 
 -- name: UnprimeAll :exec
 UPDATE api_keys SET status = 'inactive' WHERE status = 'primed';
+
+-- name: CreateOrder :one
+INSERT INTO orders (id, payload, date_created) 
+VALUES (:id, :payload, :date_created) 
+RETURNING id;
+
+-- name: GetOrderByID :one
+SELECT * FROM orders WHERE id = :id;
+
+-- name: DeleteOrder :exec
+DELETE FROM orders WHERE id = :id;
+
+-- name: GetOrders :many
+SELECT * FROM orders;
+
+-- name: GetTodaysOrders :many
+SELECT * FROM orders WHERE date_created = strftime('%Y-%m-%d', 'now');
+
+-- name: GetLatestOrder :one
+SELECT * FROM orders ORDER BY created_at DESC LIMIT 1;
+
+

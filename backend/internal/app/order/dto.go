@@ -1,9 +1,9 @@
-package ordersvc
+package orderApp
 
 // Root request payload for submitting an order to Brygid
 type OrderRequest struct {
 	TVer          string `json:"tVer"`
-	OrderID       int64  `json:"order_id"`
+	OrderID       int    `json:"order_id"`
 	StoreID       int64  `json:"store_id"`
 	VendorStoreID string `json:"vendor_store_id"`
 	StoreName     string `json:"store_name"`
@@ -131,4 +131,8 @@ type Coupon struct {
 	Name    string  `json:"name"`
 	Value   float64 `json:"value"`
 	GroupID string  `json:"group_id"`
+}
+
+type CreateOrderResult struct {
+	ID string
 }

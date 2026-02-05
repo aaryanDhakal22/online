@@ -33,6 +33,25 @@ func (q *Queries) CreateKey(ctx context.Context, arg CreateKeyParams) error {
 	return err
 }
 
+const createOrder = `-- name: CreateOrder :one
+INSERT INTO orders (id, payload, date_created) 
+VALUES (?1, ?2, ?3) 
+RETURNING id
+`
+
+type CreateOrderParams struct {
+	ID          string `json:"id"`
+	Payload     string `json:"payload"`
+	DateCreated string `json:"date_created"`
+}
+
+func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (string, error) {
+	row := q.queryRow(ctx, q.createOrderStmt, createOrder, arg.ID, arg.Payload, arg.DateCreated)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
 const deactivateKey = `-- name: DeactivateKey :exec
 UPDATE api_keys Set status = 'inactive' WHERE status = 'active'
 `
@@ -48,6 +67,15 @@ DELETE FROM api_keys WHERE id = ?1
 
 func (q *Queries) DeleteKey(ctx context.Context, id string) error {
 	_, err := q.exec(ctx, q.deleteKeyStmt, deleteKey, id)
+	return err
+}
+
+const deleteOrder = `-- name: DeleteOrder :exec
+DELETE FROM orders WHERE id = ?1
+`
+
+func (q *Queries) DeleteOrder(ctx context.Context, id string) error {
+	_, err := q.exec(ctx, q.deleteOrderStmt, deleteOrder, id)
 	return err
 }
 
@@ -73,6 +101,70 @@ func (q *Queries) GetKeyByID(ctx context.Context, id string) (ApiKey, error) {
 	return i, err
 }
 
+const getLatestOrder = `-- name: GetLatestOrder :one
+SELECT id, payload, date_created, created_at FROM orders ORDER BY created_at DESC LIMIT 1
+`
+
+func (q *Queries) GetLatestOrder(ctx context.Context) (Order, error) {
+	row := q.queryRow(ctx, q.getLatestOrderStmt, getLatestOrder)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.Payload,
+		&i.DateCreated,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getOrderByID = `-- name: GetOrderByID :one
+SELECT id, payload, date_created, created_at FROM orders WHERE id = ?1
+`
+
+func (q *Queries) GetOrderByID(ctx context.Context, id string) (Order, error) {
+	row := q.queryRow(ctx, q.getOrderByIDStmt, getOrderByID, id)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.Payload,
+		&i.DateCreated,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getOrders = `-- name: GetOrders :many
+SELECT id, payload, date_created, created_at FROM orders
+`
+
+func (q *Queries) GetOrders(ctx context.Context) ([]Order, error) {
+	rows, err := q.query(ctx, q.getOrdersStmt, getOrders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.Payload,
+			&i.DateCreated,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPrimedKey = `-- name: GetPrimedKey :one
 SELECT id, "key", status FROM api_keys WHERE status = 'primed' ORDER BY id ASC LIMIT 1
 `
@@ -82,6 +174,38 @@ func (q *Queries) GetPrimedKey(ctx context.Context) (ApiKey, error) {
 	var i ApiKey
 	err := row.Scan(&i.ID, &i.Key, &i.Status)
 	return i, err
+}
+
+const getTodaysOrders = `-- name: GetTodaysOrders :many
+SELECT id, payload, date_created, created_at FROM orders WHERE date_created = strftime('%Y-%m-%d', 'now')
+`
+
+func (q *Queries) GetTodaysOrders(ctx context.Context) ([]Order, error) {
+	rows, err := q.query(ctx, q.getTodaysOrdersStmt, getTodaysOrders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.Payload,
+			&i.DateCreated,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const unprimeAll = `-- name: UnprimeAll :exec
