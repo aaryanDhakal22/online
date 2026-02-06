@@ -3,6 +3,8 @@ package message
 import (
 	"context"
 
+	"quicc/online/internal/domain/order"
+
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/rs/zerolog"
@@ -15,7 +17,7 @@ type MessageBroker struct {
 	logger    *zerolog.Logger
 }
 
-func NewMessageBroker(queueName string) *MessageBroker {
+func NewMessageBroker(queueName string, logger *zerolog.Logger) *MessageBroker {
 	log.Debug().Msgf("Creating new message broker for queue %s", queueName)
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
@@ -32,20 +34,32 @@ func NewMessageBroker(queueName string) *MessageBroker {
 		panic(err)
 	}
 	log.Info().Msgf("Created new message broker for queue %s", queueName)
+
+	mbLogger := logger.With().Str("service", "message").Logger()
 	return &MessageBroker{
 		sqsClient: sqsClient,
 		sqsURL:    *out.QueueUrl,
+		logger:    &mbLogger,
 	}
 }
 
-func (mb *MessageBroker) Publish(orderID string, payload string) error {
-	_, err := mb.sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
-		MessageBody:            payload,
+func (mb *MessageBroker) Publish(orderID string, order order.Order) error {
+	mb.logger.Debug().Msgf("Flattening order %s", orderID)
+	orderString, err := order.Flatten()
+	if err != nil {
+		mb.logger.Error().Err(err).Msgf("Error flattening order %s", orderID)
+		return err
+	}
+	mb.logger.Debug().Msgf("Flattened order %s", orderID)
+	mb.logger.Info().Msgf("Publishing order %s", orderID)
+	_, err = mb.sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
+		MessageBody:            &orderString,
 		QueueUrl:               &mb.sqsURL,
 		MessageGroupId:         &orderID,
 		MessageDeduplicationId: &orderID,
 	})
 	if err != nil {
+		mb.logger.Error().Err(err).Msgf("Error publishing order %s", orderID)
 		return err
 	}
 	return nil

@@ -9,9 +9,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type EventPublisher interface {
+	Publish(OrderID string, order order.Order) error
+}
+
 type OrderService struct {
 	orderRepo order.Repository
-	mb        *message.MessageBroker
+	mb        EventPublisher
 	logger    zerolog.Logger
 }
 
@@ -37,5 +41,11 @@ func (s *OrderService) Create(cmd CreateOrderCommand) (*CreateOrderResult, error
 }
 
 func (s *OrderService) RelayOrder(cmd RelayOrderCommand) error {
-	return s.mb.Publish(cmd.OrderID, cmd.Payload)
+	s.logger.Info().Msg("Relaying order")
+	if err := s.mb.Publish(cmd.OrderID, cmd.Order); err != nil {
+		s.logger.Error().Err(err).Msg("Error publishing order")
+		return err
+	}
+	s.logger.Info().Msg("Order was successfully published.")
+	return nil
 }

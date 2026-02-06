@@ -35,7 +35,7 @@ func NewConfig() *Config {
 	config.RedisPort = getEnv("REDIS_PORT")
 	config.RedisPassword = getEnv("REDIS_PASS")
 	config.AdminPassHash = getEnv("ADMIN_PASS_HASH")
-	config.Queuename = getEnv("QUEUENAME")
+	config.Queuename = getEnv("QUEUE_NAME")
 
 	return &config
 }
