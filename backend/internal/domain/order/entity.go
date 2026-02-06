@@ -1,15 +1,13 @@
 package order
 
-import "encoding/json"
-
 type Order struct {
 	ID          string
-	Payload     json.RawMessage
+	Payload     string
 	DateCreated string
 	CreatedAt   string
 }
 
-func NewOrder(id string, payload json.RawMessage, dateCreated string, createdAt string) *Order {
+func NewOrder(id string, payload string, dateCreated string, createdAt string) *Order {
 	return &Order{
 		ID:          id,
 		Payload:     payload,

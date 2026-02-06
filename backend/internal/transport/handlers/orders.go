@@ -3,9 +3,10 @@ package handler
 import (
 	"io"
 	"net/http"
-	orderApp "quicc/online/internal/app/order"
 	"strconv"
 	"time"
+
+	orderApp "quicc/online/internal/app/order"
 
 	"github.com/labstack/echo/v4"
 )
@@ -26,7 +27,7 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	dateCreated := dateParsed.Format("2006-01-02")
 	h.orderSvc.Create(orderApp.CreateOrderCommand{
 		OrderID:     strconv.Itoa(newOrder.OrderID),
-		Payload:     raw_payload,
+		Payload:     string(raw_payload),
 		DateCreated: dateCreated,
 		CreatedAt:   newOrder.SubmittedDate,
 	})

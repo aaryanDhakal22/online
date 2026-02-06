@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+
 	"quicc/online/internal/infra/config"
 	"quicc/online/internal/infra/database/models"
 	"quicc/online/internal/infra/database/repositories"
+	"quicc/online/internal/infra/message"
 	"quicc/online/internal/shared"
 	"quicc/online/internal/transport"
 
@@ -86,6 +88,10 @@ func main() {
 	}
 	logger.Info().Msg("Connected to Redis")
 
+	// Setup Message Broker
+	logger.Info().Msg("Connecting to Message Broker")
+	mb := message.NewMessageBroker(cfg.Queuename)
+
 	// Setup KeyStore
 	keyQueries := models.New(db)
 	keyStore := repositories.NewKeyRepository(keyQueries, logger)
@@ -94,7 +100,7 @@ func main() {
 	// Setup OrderStore
 	orderQueries := models.New(db)
 	orderStore := repositories.NewOrderRepository(orderQueries, logger)
-	orderService := orderApp.NewOrderService(orderStore, redisClient, logger)
+	orderService := orderApp.NewOrderService(orderStore, mb, logger)
 
 	// Setup Middlewares
 	authMiddleware := custom_middlewares.RequireAuth(redisClient)

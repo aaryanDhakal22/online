@@ -35,7 +35,7 @@ func (r *KeyRepository) GetActive(ctx context.Context) (*keys.APIKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	return toDomain(key), nil
+	return toKeyDomain(key), nil
 }
 
 func (r *KeyRepository) GetPrimed(ctx context.Context) (*keys.APIKey, error) {
@@ -43,7 +43,7 @@ func (r *KeyRepository) GetPrimed(ctx context.Context) (*keys.APIKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	return toDomain(key), nil
+	return toKeyDomain(key), nil
 }
 
 func (r *KeyRepository) GetByID(ctx context.Context, id string) (*keys.APIKey, error) {
@@ -51,7 +51,7 @@ func (r *KeyRepository) GetByID(ctx context.Context, id string) (*keys.APIKey, e
 	if err != nil {
 		return nil, err
 	}
-	return toDomain(key), nil
+	return toKeyDomain(key), nil
 }
 
 func (r *KeyRepository) Activate(ctx context.Context, id string) error {
@@ -71,7 +71,7 @@ func (r *KeyRepository) Delete(ctx context.Context, id string) error {
 	return r.db.DeleteKey(ctx, id)
 }
 
-func toDomain(key models.ApiKey) *keys.APIKey {
+func toKeyDomain(key models.ApiKey) *keys.APIKey {
 	return &keys.APIKey{
 		ID:     key.ID,
 		Key:    key.Key,
