@@ -14,6 +14,7 @@ type Config struct {
 	AppEnv        string
 	LogLevel      zerolog.Level
 	LogOutput     io.Writer
+	Queuename     string
 	LogStyle      string
 	ServerPort    string
 	RedisPort     string
@@ -34,6 +35,7 @@ func NewConfig() *Config {
 	config.RedisPort = getEnv("REDIS_PORT")
 	config.RedisPassword = getEnv("REDIS_PASS")
 	config.AdminPassHash = getEnv("ADMIN_PASS_HASH")
+	config.Queuename = getEnv("QUEUE_NAME")
 
 	return &config
 }

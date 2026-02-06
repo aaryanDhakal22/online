@@ -51,4 +51,5 @@ tasks:
       - echo "SERVER_PORT=1323" >> {{.ENV_FILE}}
       - echo "REDIS_PORT=6379" >> {{.ENV_FILE}}
       - echo "REDIS_PASS=testing" >> {{.ENV_FILE}}
+      - echo "QUEUE_NAME=default" >> {{.ENV_FILE}}
       - echo "# ARGON2ID == version=19, memory=64000, time=3, parallelism=2, salt=lombardis" >> {{.ENV_FILE}}
