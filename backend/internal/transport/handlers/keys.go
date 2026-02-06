@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+
 	keyApp "quicc/online/internal/app/key"
 
 	"github.com/labstack/echo/v4"
@@ -9,7 +10,7 @@ import (
 
 func (h *Handler) Generate(c echo.Context) error {
 	h.log.Info().Msg("Generating new key")
-	newKey, err := h.keySvc.Generate(keyApp.GenerateKeyCommand{})
+	newKey, err := h.keySvc.Generate(c.Request().Context(), keyApp.GenerateKeyCommand{})
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Unable to generate key")
 	}
@@ -23,7 +24,7 @@ func (h *Handler) Generate(c echo.Context) error {
 
 func (h *Handler) Set(c echo.Context) error {
 	h.log.Info().Msg("Setting key")
-	key, err := h.keySvc.Set(keyApp.SetKeyCommand{})
+	key, err := h.keySvc.Set(c.Request().Context(), keyApp.SetKeyCommand{})
 	if err != nil {
 		h.log.Error().Err(err).Msg("Unable to set key")
 		return c.String(http.StatusInternalServerError, "Unable to set key")

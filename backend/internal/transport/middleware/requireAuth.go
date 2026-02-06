@@ -10,7 +10,7 @@ import (
 func RequireAuth(rd *redis.Client) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			apiKey, err := rd.Get(c.Request().Context(), "api_key").Result()
+			apiKey, err := rd.Get(c.Request().Context(), "active_key").Result()
 			if err != nil {
 				return c.String(http.StatusInternalServerError, "Internal Server Error")
 			}

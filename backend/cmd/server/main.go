@@ -90,7 +90,7 @@ func main() {
 
 	// Setup Message Broker
 	logger.Info().Msg("Connecting to Message Broker")
-	mb := message.NewMessageBroker(cfg.Queuename)
+	mb := message.NewMessageBroker(cfg.Queuename, &logger)
 
 	// Setup KeyStore
 	keyQueries := models.New(db)
