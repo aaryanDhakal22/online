@@ -2,6 +2,7 @@ package keyApp
 
 import (
 	"context"
+	"time"
 
 	keys "quicc/online/internal/domain/key"
 
@@ -9,13 +10,18 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type RedisClient interface {
+	Get(ctx context.Context, key string) *redis.StringCmd
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+}
+
 type KeyService struct {
 	keyRepo keys.Repository
-	rd      *redis.Client
+	rd      RedisClient
 	logger  zerolog.Logger
 }
 
-func NewKeyService(keyRepo keys.Repository, rd *redis.Client, logger zerolog.Logger) *KeyService {
+func NewKeyService(keyRepo keys.Repository, rd RedisClient, logger zerolog.Logger) *KeyService {
 	logger = logger.With().Str("service", "key").Logger()
 	return &KeyService{
 		keyRepo: keyRepo,
@@ -24,7 +30,7 @@ func NewKeyService(keyRepo keys.Repository, rd *redis.Client, logger zerolog.Log
 	}
 }
 
-func (s *KeyService) Generate(cmd GenerateKeyCommand) (*GenerateKeyResult, error) {
+func (s *KeyService) Generate(ctx context.Context, cmd GenerateKeyCommand) (*GenerateKeyResult, error) {
 	// Generate a new API key
 	s.logger.Info().Msg("Generating new key entity")
 	newKey, err := keys.NewAPIKey()
@@ -35,18 +41,17 @@ func (s *KeyService) Generate(cmd GenerateKeyCommand) (*GenerateKeyResult, error
 
 	// Unprime the previous key
 	s.logger.Info().Msg("Unpriming previous key")
-	if err := s.keyRepo.UnprimeAll(context.TODO()); err != nil {
+	if err := s.keyRepo.UnprimeAll(ctx); err != nil {
 		s.logger.Error().Err(err).Msg("Error unpriming previous key")
 		return nil, err
 	}
 
 	// Create the API key
 	s.logger.Info().Msg("Creating new key record in database")
-	s.keyRepo.Create(context.TODO(), newKey)
-
-	// Set the API key in Redis
-	s.logger.Info().Msg("Setting new key in Redis")
-	s.rd.Set(context.TODO(), "primed_key", newKey.Key, 0)
+	if err := s.keyRepo.Create(ctx, newKey); err != nil {
+		s.logger.Error().Err(err).Msg("Error creating new key record in database")
+		return nil, err
+	}
 
 	// Return the API key
 	s.logger.Info().Msg("Returning new key")
@@ -57,32 +62,49 @@ func (s *KeyService) Generate(cmd GenerateKeyCommand) (*GenerateKeyResult, error
 	}, nil
 }
 
-func (s *KeyService) Set(cmd SetKeyCommand) (*SetKeyResult, error) {
+func (s *KeyService) Set(ctx context.Context, cmd SetKeyCommand) (*SetKeyResult, error) {
 	// Get the API key
 	s.logger.Debug().Msg("Getting active key")
-	key, err := s.keyRepo.GetPrimed(context.TODO())
+	key, err := s.keyRepo.GetPrimed(ctx)
 	if err != nil {
 		return nil, err
 	}
 	// Deactivate other API keys
 	s.logger.Debug().Msg("Deactivating all keys")
-	if err := s.keyRepo.DeactivateAllKeys(context.TODO()); err != nil {
+	if err := s.keyRepo.DeactivateAllKeys(ctx); err != nil {
 		return nil, err
 	}
 
 	// Set the API key status
 	s.logger.Debug().Msg("Setting active key")
-	if err := s.keyRepo.Activate(context.TODO(), key.ID); err != nil {
+	if err := s.keyRepo.Activate(ctx, key.ID); err != nil {
 		return nil, err
 	}
 
 	s.logger.Info().Msg("Key set")
 	// Update the redis key
-	s.rd.Set(context.TODO(), "active_key", key.Key, 0)
+	status := s.rd.Set(ctx, "active_key", key.Key, 0)
+	if status.Err() != nil {
+		s.logger.Error().Err(status.Err()).Msg("Error setting active key in Redis")
+		return nil, status.Err()
+	}
 
 	defer s.logger.Info().Msg("Key was successfully set.")
 	return &SetKeyResult{
 		ID:  key.ID,
 		Key: key.Key,
+	}, nil
+}
+
+func (s *KeyService) Verify(ctx context.Context, cmd VerifyKeyCommand) (*VerifyKeyResult, error) {
+	s.logger.Info().Msg("Verifying key")
+	key, err := s.rd.Get(ctx, "active_key").Result()
+	if err != nil {
+		s.logger.Error().Err(err).Msg("Error getting active key from Redis")
+		return nil, err
+	}
+	s.logger.Info().Msg("Key retrieved")
+	return &VerifyKeyResult{
+		Match: key == cmd.Key,
 	}, nil
 }

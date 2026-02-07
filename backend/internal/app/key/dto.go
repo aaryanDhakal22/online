@@ -29,3 +29,6 @@ type ActivateKeyResult struct {
 type DeactivateKeyResult struct {
 	ID string `json:"id,omitempty"`
 }
+type VerifyKeyResult struct {
+	Match bool `json:"match"`
+}

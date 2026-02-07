@@ -52,10 +52,9 @@ func (mb *MessageBroker) Publish(orderID string, order order.Order) error {
 	mb.logger.Debug().Msgf("Flattened order %s", orderID)
 	mb.logger.Info().Msgf("Publishing order %s", orderID)
 	_, err = mb.sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
-		MessageBody:            &orderString,
-		QueueUrl:               &mb.sqsURL,
-		MessageGroupId:         &orderID,
-		MessageDeduplicationId: &orderID,
+		MessageBody:    &orderString,
+		QueueUrl:       &mb.sqsURL,
+		MessageGroupId: &orderID,
 	})
 	if err != nil {
 		mb.logger.Error().Err(err).Msgf("Error publishing order %s", orderID)

@@ -22,6 +22,8 @@ func RegisterRoutes(e *echo.Echo, cms *CMS, handler *handler.Handler) {
 		return c.String(http.StatusOK, "OK")
 	})
 
+	v1.GET("/verify", handler.Verify)
+
 	protected := v1.Group("")
 
 	protected.Use(cms.AuthMiddleware)
@@ -34,11 +36,9 @@ func RegisterRoutes(e *echo.Echo, cms *CMS, handler *handler.Handler) {
 
 	admin.GET("/set", handler.Set)
 
-	protected.GET("/v1/verify", handler.Verify)
+	protected.POST("/order", handler.CreateOrder)
 
-	protected.POST("/v1/orders", handler.CreateOrder)
+	protected.GET("/order/todays", handler.GetTodaysOrders)
 
-	protected.GET("/v1/orders/todays", handler.GetTodaysOrders)
-
-	protected.GET("/v1/orders/latest", handler.GetLatestOrder)
+	protected.GET("/order/latest", handler.GetLatestOrder)
 }

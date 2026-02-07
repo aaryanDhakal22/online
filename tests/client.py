@@ -1,16 +1,15 @@
 import dotenv
 import os
 import requests
-import json
 
 dotenv.load_dotenv()
 
 class ApiClient():
-    def __init__(self, ):
+    def __init__(self,endpoint ):
         self.base_url = ""
         self.backend_port = ""
         self.backend_url = ""
-        
+        self.endpoint = endpoint
 
     def load_env(self):
         self.base_url = os.getenv("BASE_URL")
@@ -26,10 +25,18 @@ class ApiClient():
             self.backend_port = "1323"
         self.backend_url = f"{self.base_url}:{self.backend_port}"
 
-    def get(self, endpoint):
-        
-        url = f"{self.backend_url}/{endpoint}"
-        response = requests.get(url)
-        return response.json()
+    def get(self,route,headers=None):
+        if headers is None:
+            headers = {}
+        url = f"{self.backend_url}/{self.endpoint}{route}"
+        response = requests.get(url,headers=headers)
+        # print(f"GET {url}","->",response.status_code)
+        return response
 
-
+    def post(self,route,headers=None,json_data=None):
+        if headers is None:
+            headers = {}
+        url = f"{self.backend_url}/{self.endpoint}{route}"
+        response = requests.post(url,headers=headers,json=json_data)
+        # print(f"POST {url}","->",response.status_code)
+        return response
