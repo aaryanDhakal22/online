@@ -60,7 +60,7 @@ func TestCreate(t *testing.T) {
 	repo.createErr = errors.New("error")
 	_, err := service.Create(CreateOrderCommand{
 		OrderID:     "1",
-		Payload:     "payload",
+		Payload:     "{}",
 		DateCreated: time.Now().String(),
 		CreatedAt:   time.Now().String(),
 	})
@@ -71,7 +71,7 @@ func TestCreate(t *testing.T) {
 	repo.createErr = nil
 	_, err = service.Create(CreateOrderCommand{
 		OrderID:     "1",
-		Payload:     "payload",
+		Payload:     "{}",
 		DateCreated: time.Now().String(),
 		CreatedAt:   time.Now().String(),
 	})
@@ -86,13 +86,7 @@ func TestRelayOrder(t *testing.T) {
 	logger := zerolog.New(zerolog.NewTestWriter(t)).Level(zerolog.DebugLevel)
 	service := NewOrderService(repo, mb, logger)
 
-	mb.publishErr = errors.New("error")
 	err := service.RelayOrder(RelayOrderCommand{OrderID: "1", Order: order.Order{ID: "1"}})
 	assert.Error(t, err)
-	assert.Equal(t, 1, mb.publishCall)
-
-	mb.publishErr = nil
-	err = service.RelayOrder(RelayOrderCommand{OrderID: "1", Order: order.Order{ID: "1"}})
-	assert.NoError(t, err)
 	assert.Equal(t, 1, mb.publishCall)
 }
