@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"os"
+
 	"quicc/online/internal/infra/config"
 	"quicc/online/internal/infra/database/models"
 	"quicc/online/internal/infra/database/repositories"
 	"quicc/online/internal/infra/message"
+	"quicc/online/internal/migrations"
 	"quicc/online/internal/shared"
 	"quicc/online/internal/transport"
 
@@ -29,7 +30,7 @@ import (
 
 func applySchema(db *sql.DB) {
 	// Open the schema file
-	schemaFile, err := os.ReadFile("sql/schema.sql")
+	schemaFile, err := migrations.FS.ReadFile("sql/001_setup.sql")
 	if err != nil {
 		fmt.Println("Error opening schema file")
 		panic(err)
