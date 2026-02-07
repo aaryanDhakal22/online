@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-
 	"quicc/online/internal/infra/config"
 	"quicc/online/internal/infra/database/models"
 	"quicc/online/internal/infra/database/repositories"
@@ -90,7 +89,8 @@ func main() {
 
 	// Setup Message Broker
 	logger.Info().Msg("Connecting to Message Broker")
-	mb := message.NewMessageBroker(cfg.Queuename)
+	mb := message.NewMessageBroker(cfg.Queuename, logger)
+	logger.Info().Msg("Connected to Message Broker")
 
 	// Setup KeyStore
 	keyQueries := models.New(db)
