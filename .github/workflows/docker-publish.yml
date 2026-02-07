@@ -86,6 +86,6 @@ jobs:
             docker image prune -f
 
             # Optional: show status
-            docker-compose -f docker-compose.prod.yaml ps
+            docker-compose -f docker-compose.prod.yml ps
           EOF
 
