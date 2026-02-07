@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type Config struct {
@@ -36,6 +37,16 @@ func NewConfig() *Config {
 	config.RedisPassword = getEnv("REDIS_PASS")
 	config.AdminPassHash = getEnv("ADMIN_PASS_HASH")
 	config.Queuename = getEnv("QUEUE_NAME")
+	log.Info().Msg("Config loaded")
+	log.Info().Msgf("AppEnv: %s", config.AppEnv)
+	log.Info().Msgf("LogLevel: %s", config.LogLevel)
+	log.Info().Msgf("LogOutput: %s", config.LogOutput)
+	log.Info().Msgf("LogStyle: %s", config.LogStyle)
+	log.Info().Msgf("ServerPort: %s", config.ServerPort)
+	log.Info().Msgf("RedisPort: %s", config.RedisPort)
+	log.Info().Msgf("RedisPassword: %s", config.RedisPassword)
+	log.Info().Msgf("AdminPassHash: %s", config.AdminPassHash)
+	log.Info().Msgf("Queuename: %s", config.Queuename)
 
 	return &config
 }

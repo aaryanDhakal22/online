@@ -2,7 +2,6 @@ services:
   api:
     env_file:
       - ../.env
-    
     container_name: quicc_online_backend
     build:
       context: ../backend
