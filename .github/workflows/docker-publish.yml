@@ -20,9 +20,9 @@ jobs:
             image: ghcr.io/quiccpos/online-api
             target: runtime
 
-          - name: frontend
-            context: ./frontend
-            image: ghcr.io/quiccpos/online-frontend
+          - name: proxy
+            context: ./nginx
+            image: ghcr.io/quiccpos/online-nginx
             target: ""
     steps:
       - name: Checkout

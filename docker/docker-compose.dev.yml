@@ -17,7 +17,8 @@ services:
 
   nginx:
     container_name: quicc_reverse_proxy
-    image: nginx:alpine
+    build:
+      context: ../nginx
     restart: unless-stopped
     ports:
       - "80:80"
