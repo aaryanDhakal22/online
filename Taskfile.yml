@@ -53,3 +53,12 @@ tasks:
       - echo "REDIS_PASS=testing" >> {{.ENV_FILE}}
       - echo "QUEUE_NAME=default" >> {{.ENV_FILE}}
       - echo "# ARGON2ID == version=19, memory=64000, time=3, parallelism=2, salt=lombardis" >> {{.ENV_FILE}}
+  transport-env:
+    desc: Send the .env file to production
+    cmds: 
+      - scp {{.ENV_FILE}} lightsail-api:~
+
+  transport-compose:
+    desc: Send the docker-compose file to production
+    cmds: 
+      - scp {{.PROD_CONFIG}} lightsail-api:~

@@ -40,11 +40,11 @@ func NewMessageBroker(queueName string, logger zerolog.Logger) *MessageBroker {
 	out, err := sqsClient.GetQueueUrl(context.TODO(), &sqs.GetQueueUrlInput{
 		QueueName: &queueName,
 	})
-	mbLogger.Debug().Msgf("Got queue URL: %v", *out.QueueUrl)
-
 	if err != nil {
 		panic(err)
 	}
+
+	mbLogger.Debug().Msgf("Got queue URL: %v", *out.QueueUrl)
 	mbLogger.Info().Msgf("Created new message broker for queue %s", queueName)
 
 	return &MessageBroker{
