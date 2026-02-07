@@ -17,13 +17,14 @@ type MessageBroker struct {
 }
 
 func NewMessageBroker(queueName string, logger zerolog.Logger) *MessageBroker {
-	logger.Debug().Msgf("Creating new message broker for queue %s", queueName)
+	mbLogger := logger.With().Str("service", "message").Logger()
+	mbLogger.Debug().Msgf("Creating new message broker for queue %s", queueName)
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to load SDK config")
 		panic(err)
 	}
-	logger.Debug().Msgf("Loaded SDK config: %+v", cfg)
+	mbLogger.Debug().Msgf("Loaded SDK config: %+v", cfg)
 
 	stsClient := sts.NewFromConfig(cfg)
 	stsOut, err := stsClient.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
@@ -31,19 +32,21 @@ func NewMessageBroker(queueName string, logger zerolog.Logger) *MessageBroker {
 		logger.Fatal().Err(err).Msg("Failed to get caller identity")
 		panic(err)
 	}
-	logger.Debug().Msgf("Got caller identity: %+v", stsOut)
+	mbLogger.Debug().Msgf("Got caller UserID: %v", *stsOut.UserId)
+	mbLogger.Debug().Msgf("Got caller Account: %v", *stsOut.Account)
+	mbLogger.Debug().Msgf("Got caller Arn: %v", *stsOut.Arn)
 
 	sqsClient := sqs.NewFromConfig(cfg)
 	out, err := sqsClient.GetQueueUrl(context.TODO(), &sqs.GetQueueUrlInput{
 		QueueName: &queueName,
 	})
-	logger.Debug().Msgf("Got queue URL: %+v", out)
+	mbLogger.Debug().Msgf("Got queue URL: %v", *out.QueueUrl)
+
 	if err != nil {
 		panic(err)
 	}
-	logger.Info().Msgf("Created new message broker for queue %s", queueName)
+	mbLogger.Info().Msgf("Created new message broker for queue %s", queueName)
 
-	mbLogger := logger.With().Str("service", "message").Logger()
 	return &MessageBroker{
 		sqsClient: sqsClient,
 		sqsURL:    *out.QueueUrl,
