@@ -1,12 +1,7 @@
 from client import ApiClient
 
 def main():
-    
-    client = ApiClient()
-    client.load_env()
-    print(client.get("test"))
-
-
+   print("Hello World")
 
 if __name__ == "__main__":
     main()

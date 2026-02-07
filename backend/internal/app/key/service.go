@@ -11,6 +11,7 @@ import (
 )
 
 type RedisClient interface {
+	Get(ctx context.Context, key string) *redis.StringCmd
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 }
 
@@ -92,5 +93,18 @@ func (s *KeyService) Set(ctx context.Context, cmd SetKeyCommand) (*SetKeyResult,
 	return &SetKeyResult{
 		ID:  key.ID,
 		Key: key.Key,
+	}, nil
+}
+
+func (s *KeyService) Verify(ctx context.Context, cmd VerifyKeyCommand) (*VerifyKeyResult, error) {
+	s.logger.Info().Msg("Verifying key")
+	key, err := s.rd.Get(ctx, "active_key").Result()
+	if err != nil {
+		s.logger.Error().Err(err).Msg("Error getting active key from Redis")
+		return nil, err
+	}
+	s.logger.Info().Msg("Key retrieved")
+	return &VerifyKeyResult{
+		Match: key == cmd.Key,
 	}, nil
 }

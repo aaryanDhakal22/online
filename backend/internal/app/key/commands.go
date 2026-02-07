@@ -11,3 +11,7 @@ type ActivateKeyCommand struct {
 type DeactivateKeyCommand struct {
 	ID string
 }
+
+type VerifyKeyCommand struct {
+	Key string
+}
