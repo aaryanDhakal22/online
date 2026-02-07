@@ -21,7 +21,8 @@ jobs:
             target: runtime
 
           - name: proxy
-            context: ./nginx
+            context: .
+            file: ./nginx/Dockerfile
             image: ghcr.io/quiccpos/online-nginx
             target: ""
     steps:
