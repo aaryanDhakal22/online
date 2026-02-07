@@ -13,10 +13,10 @@ import (
 type MessageBroker struct {
 	sqsURL    string
 	sqsClient *sqs.Client
-	logger    *zerolog.Logger
+	logger    zerolog.Logger
 }
 
-func NewMessageBroker(queueName string, logger *zerolog.Logger) *MessageBroker {
+func NewMessageBroker(queueName string, logger zerolog.Logger) *MessageBroker {
 	log.Debug().Msgf("Creating new message broker for queue %s", queueName)
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
@@ -38,7 +38,7 @@ func NewMessageBroker(queueName string, logger *zerolog.Logger) *MessageBroker {
 	return &MessageBroker{
 		sqsClient: sqsClient,
 		sqsURL:    *out.QueueUrl,
-		logger:    &mbLogger,
+		logger:    mbLogger,
 	}
 }
 

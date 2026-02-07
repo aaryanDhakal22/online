@@ -2,6 +2,7 @@ services:
   api:
     env_file:
       - ../.env
+    
     container_name: quicc_online_backend
     build:
       context: ../backend
@@ -9,6 +10,7 @@ services:
     restart: always
     volumes:
       - ../backend:/src
+      - ~/.aws:/root/.aws:ro
     ports:
       - "1323:1323"
     depends_on:
