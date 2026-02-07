@@ -2,10 +2,12 @@ package message
 
 import (
 	"context"
+
 	"quicc/online/internal/domain/order"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -24,6 +26,15 @@ func NewMessageBroker(queueName string, logger zerolog.Logger) *MessageBroker {
 		panic(err)
 	}
 	log.Debug().Msgf("Loaded SDK config: %+v", cfg)
+
+	stsClient := sts.NewFromConfig(cfg)
+	stsOut, err := stsClient.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to get caller identity")
+		panic(err)
+	}
+	log.Debug().Msgf("Got caller identity: %+v", stsOut)
+
 	sqsClient := sqs.NewFromConfig(cfg)
 	out, err := sqsClient.GetQueueUrl(context.TODO(), &sqs.GetQueueUrlInput{
 		QueueName: &queueName,
