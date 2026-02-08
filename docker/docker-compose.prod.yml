@@ -17,19 +17,13 @@ services:
 
 
   certbot:
-    image: certbot/certbot
+    image: certbot/dns-cloudflare:latest
     container_name: quicc_certbot
-    restart: unless-stopped
+    environment:
+      - CF_API_TOKEN=${CF_API_TOKEN}
     volumes:
       - letsencrypt:/etc/letsencrypt
-      - webroot:/var/www/certbot
-    entrypoint: /bin/sh -c 
-    command: >
-      "trap exit TERM;
-      while :; do
-        certbot renew --webroot -w var/www/certbot --email ${CERTBOT_EMAIL} --agree-tos --quiet;
-        sleep 12h ;
-      done"
+    entrypoint: /bin/sh -c "sleep infinity"
 
   proxy:
     image: ghcr.io/quiccpos/online-nginx:latest
@@ -59,4 +53,3 @@ services:
 
 volumes:
   letsencrypt:
-  webroot:  
