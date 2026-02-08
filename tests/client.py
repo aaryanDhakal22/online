@@ -4,6 +4,7 @@ import requests
 
 dotenv.load_dotenv()
 
+
 class ApiClient():
     def __init__(self,endpoint ):
         self.base_url = ""
@@ -12,25 +13,27 @@ class ApiClient():
         self.endpoint = endpoint
 
     def load_env(self):
-        self.base_url = os.getenv("BASE_URL")
-        self.backend_port = os.getenv("BACKEND_PORT")
-        self.backend_url = f"http://localhost:{self.backend_port}"
-        if self.base_url is None:
-            print("BASE_URL is not set")
-            print("Using default value: http://localhost")
-            self.base_url = "http://localhost"
-        if self.backend_port is None:
-            print("BACKEND_PORT is not set")
-            print("Using default value: 1323")
-            self.backend_port = "1323"
-        self.backend_url = f"{self.base_url}:{self.backend_port}"
+    
+        app_env = os.getenv("APP_ENV")
+        print(f"app_env: {app_env}")
+        if app_env == "dev":
+            self.base_url = os.getenv("DEV_URL")
+            self.backend_port = os.getenv("DEV_BACKEND_PORT")
+            if self.backend_port is None:
+                self.backend_port = "1323"
+            self.backend_url = f"{self.base_url}:{self.backend_port}"
+        elif app_env == "prod":
+            self.base_url = os.getenv("PROD_URL")
+            self.backend_port = None
+            self.backend_url = self.base_url
 
     def get(self,route,headers=None):
         if headers is None:
             headers = {}
         url = f"{self.backend_url}/{self.endpoint}{route}"
+        print(f"GET {url}","->",headers)
         response = requests.get(url,headers=headers)
-        # print(f"GET {url}","->",response.status_code)
+        print(f"GET {url}","->",response.status_code)
         return response
 
     def post(self,route,headers=None,json_data=None):

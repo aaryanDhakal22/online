@@ -134,20 +134,21 @@ def send_one_order(order):
         return
 
     order["order_id"] = rd.randint(1000,9999)
-    pprint(order)
+    # pprint(order)
 
     response = client.post("/order", headers={
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json"
         },json_data=order)
 
-    print(response)
+    #print(response)
     print(response.status_code)
     print(response.text)
 
 
-send_one_order(order_requests["basic_pickup_order"])
-send_one_order(order_requests["delivery_with_address"])
-send_one_order(order_requests["tax_exempt_corporate_order"])
-send_one_order(order_requests["third_party_delivery_order"])
-send_one_order(order_requests["coupon_and_partial_payment"])    
+send_one_order(order_requests["brygid_sample_order"])
+# send_one_order(order_requests["basic_pickup_order"])
+# send_one_order(order_requests["delivery_with_address"])
+# send_one_order(order_requests["tax_exempt_corporate_order"])
+# send_one_order(order_requests["third_party_delivery_order"])
+# send_one_order(order_requests["coupon_and_partial_payment"])    

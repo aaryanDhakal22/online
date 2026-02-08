@@ -134,5 +134,7 @@ type Coupon struct {
 }
 
 type CreateOrderResult struct {
-	ID string
+	Status          string `json:"status"`
+	ExtOrderID      string `json:"ext_order_id"`
+	OrderPlacedTime string `json:"order_placed_time"`
 }

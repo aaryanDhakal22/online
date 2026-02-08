@@ -2,6 +2,8 @@ package orderApp
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"quicc/online/internal/domain/order"
 
@@ -36,7 +38,11 @@ func (s *OrderService) Create(cmd CreateOrderCommand) (*CreateOrderResult, error
 		return nil, err
 	}
 	s.logger.Info().Msg("Order was successfully created.")
-	return &CreateOrderResult{ID: order.ID}, nil
+	return &CreateOrderResult{
+		Status:          "success",
+		ExtOrderID:      fmt.Sprintf("brygid-%v", order.ID),
+		OrderPlacedTime: time.Now().Format(time.RFC3339),
+	}, nil
 }
 
 func (s *OrderService) RelayOrder(cmd RelayOrderCommand) error {

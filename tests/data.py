@@ -1,4 +1,154 @@
 order_requests = {
+    "brygid_sample_order": {
+        "tVer": "1.0.0",
+        "order_id": 2102522,
+        "store_id": 635,
+        "vendor_store_id": "Brygid_demo_store",
+        "store_name": "Brygid Test Store",
+        "service_type": "delivery",
+        "submitted_date": "2019-07-11T12:20:00-0700",
+        "print_date": "2019-07-11T12:20:00-0700",
+        "deferred_date": "2019-07-12T13:00:00-0700",
+        "misc_charges": [
+            {
+                "misc_charge_name": "delivery_charge",
+                "misc_charge_desc": "delivery fee",
+                "misc_charge_amount": 2.00,
+            },
+            {
+                "misc_charge_name": "other_charge",
+                "misc_charge_desc": "packaging fee",
+                "misc_charge_amount": 2.00,
+            },
+        ],
+        "tip": 1.00,
+        "taxes": [
+            {"tax_name": "GST", "tax_amount": 0.99},
+            {"tax_name": "PST", "tax_amount": 1.39},
+        ],
+        "is_tax_exempt":False,
+        "order_total": 23.18,
+        "balance_owing": 2.58,
+        "notes": "Please come around the back door.",
+        "customer": {
+            "first_name": "Maninderjeet",
+            "last_name": "singh",
+            "company": "Brygid",
+            "phone": "6046487388",
+            "ext": "123",
+            "email": "maninderjeet.singh@brygid.com",
+        },
+        "delivery_address": {
+            "street": "938 Howe St",
+            "cross_streets": "Smithe Street",
+            "suite": "811",
+            "buz": "007",
+            "city": "Vancouver",
+            "state": "BC",
+            "zip": "V6Z1N9",
+        },
+        "delivery_provider": {
+            "provider_name": "DOORDASH",
+            "status": "success",
+            "delivery_id": "162258033",
+            "tracking_url": "https://doordash.com/drive/portal/track/VJuvZIHwqRVrNGW",
+            "pickup_date": "2019-07-12T12:30:00-0700",
+        },
+        "payments": [
+            {
+                "type": "VISA",
+                "amount": 5.00,
+                "card_number": "xxxxxxxxxxxxx111",
+                "card_holder": "John Doe",
+                "auth_code": "ET126516",
+                "transaction_id": "4315276520",
+                "token": "",
+            },
+            {
+                "type": "giftcard",
+                "amount": 2.00,
+                "card_number": "xxxxxxxxxx009961",
+                "auth_code": "251879",
+                "transaction_id": "205100235",
+            },
+        ],
+        "items": [
+            {
+                "name": "Vegeterian Pizza",
+                "size_id": 2,
+                "size_name": "medium",
+                "quantity": 1,
+                "price": 6.95,
+                "plu": "19720",
+                "who": "",
+                "group_id": "combo-1",
+                "notes": "Garlic allergy",
+                "modifiers": [
+                    {
+                        "side": "whole",
+                        "name": "onions",
+                        "quantity": 1,
+                        "plu": "101",
+                        "price": 0.00,
+                        "action": "add",
+                    },
+                    {
+                        "side": "side1",
+                        "name": "tomatoes",
+                        "quantity": 1,
+                        "plu": "102",
+                        "price": 0.00,
+                        "action": "add",
+                    },
+                ],
+            },
+            {
+                "name": "2L Coke",
+                "size_id": 1,
+                "size_name": "small",
+                "quantity": 1,
+                "price": 2.95,
+                "plu": "26720",
+                "who": "",
+                "group_id": "combo-1",
+                "notes": "",
+                "modifiers": [],
+            },
+            {
+                "name": "wings",
+                "size_id": 2,
+                "size_name": "medium",
+                "quantity": 1,
+                "price": 5.95,
+                "plu": "16720",
+                "who": "",
+                "group_id": "combo-1",
+                "notes": "",
+                "modifiers": [],
+            },
+            {
+                "name": "salad",
+                "size_id": 1,
+                "size_name": "small",
+                "quantity": 1,
+                "price": 4.95,
+                "plu": "16420",
+                "who": "Manu",
+                "group_id": "",
+                "notes": "vegan ranch",
+                "modifiers": [],
+            },
+        ],
+        "coupons": [
+            {
+                "serial": "5off",
+                "plu": "886",
+                "name": "$5 off veggie meal",
+                "value": 5.00,
+                "group_id": "combo-1",
+            }
+        ],
+    },
     "basic_pickup_order": {
         "tVer": "1.0",
         "order_id": 1001,
@@ -11,9 +161,7 @@ order_requests = {
         "deferred_date": "",
         "misc_charges": [],
         "tip": 2.50,
-        "taxes": [
-            {"tax_name": "Sales Tax", "tax_amount": 1.75}
-        ],
+        "taxes": [{"tax_name": "Sales Tax", "tax_amount": 1.75}],
         "is_tax_exempt": False,
         "order_total": 18.25,
         "balance_owing": 0.00,
@@ -24,7 +172,7 @@ order_requests = {
             "company": "",
             "phone": "5551234567",
             "ext": "",
-            "email": "john.doe@example.com"
+            "email": "john.doe@example.com",
         },
         "delivery_address": None,
         "delivery_provider": None,
@@ -36,7 +184,7 @@ order_requests = {
                 "card_holder": "John Doe",
                 "auth_code": "AUTH123",
                 "transaction_id": "TXN1001",
-                "token": "tok_abc123"
+                "token": "tok_abc123",
             }
         ],
         "items": [
@@ -50,12 +198,11 @@ order_requests = {
                 "who": "Kitchen",
                 "group_id": "pizza",
                 "notes": "",
-                "modifiers": []
+                "modifiers": [],
             }
         ],
-        "coupons": []
+        "coupons": [],
     },
-
     "delivery_with_address": {
         "tVer": "1.0",
         "order_id": 1002,
@@ -70,13 +217,11 @@ order_requests = {
             {
                 "misc_charge_name": "Delivery Fee",
                 "misc_charge_desc": "Standard delivery",
-                "misc_charge_amount": 3.99
+                "misc_charge_amount": 3.99,
             }
         ],
         "tip": 5.00,
-        "taxes": [
-            {"tax_name": "Sales Tax", "tax_amount": 2.10}
-        ],
+        "taxes": [{"tax_name": "Sales Tax", "tax_amount": 2.10}],
         "is_tax_exempt": False,
         "order_total": 31.09,
         "balance_owing": 0.00,
@@ -87,7 +232,7 @@ order_requests = {
             "company": "",
             "phone": "5559876543",
             "ext": "",
-            "email": "sarah@example.com"
+            "email": "sarah@example.com",
         },
         "delivery_address": {
             "street": "123 Main St",
@@ -96,7 +241,7 @@ order_requests = {
             "buz": "",
             "city": "New York",
             "state": "NY",
-            "zip": "10001"
+            "zip": "10001",
         },
         "delivery_provider": None,
         "payments": [
@@ -107,7 +252,7 @@ order_requests = {
                 "card_holder": "",
                 "auth_code": "",
                 "transaction_id": "",
-                "token": ""
+                "token": "",
             }
         ],
         "items": [
@@ -128,14 +273,13 @@ order_requests = {
                         "quantity": 1,
                         "plu": "MOD01",
                         "price": 2.00,
-                        "action": "add"
+                        "action": "add",
                     }
-                ]
+                ],
             }
         ],
-        "coupons": []
+        "coupons": [],
     },
-
     "tax_exempt_corporate_order": {
         "tVer": "1.0",
         "order_id": 1003,
@@ -159,7 +303,7 @@ order_requests = {
             "company": "TechCorp Inc.",
             "phone": "5553332222",
             "ext": "101",
-            "email": "emily@techcorp.com"
+            "email": "emily@techcorp.com",
         },
         "delivery_address": None,
         "delivery_provider": None,
@@ -171,7 +315,7 @@ order_requests = {
                 "card_holder": "",
                 "auth_code": "",
                 "transaction_id": "INV-9001",
-                "token": ""
+                "token": "",
             }
         ],
         "items": [
@@ -185,12 +329,11 @@ order_requests = {
                 "who": "Kitchen",
                 "group_id": "pizza",
                 "notes": "",
-                "modifiers": []
+                "modifiers": [],
             }
         ],
-        "coupons": []
+        "coupons": [],
     },
-
     "third_party_delivery_order": {
         "tVer": "1.0",
         "order_id": 1004,
@@ -203,9 +346,7 @@ order_requests = {
         "deferred_date": "",
         "misc_charges": [],
         "tip": 0.00,
-        "taxes": [
-            {"tax_name": "Sales Tax", "tax_amount": 1.25}
-        ],
+        "taxes": [{"tax_name": "Sales Tax", "tax_amount": 1.25}],
         "is_tax_exempt": False,
         "order_total": 16.25,
         "balance_owing": 0.00,
@@ -216,7 +357,7 @@ order_requests = {
             "company": "",
             "phone": "5556667777",
             "ext": "",
-            "email": "mike@example.com"
+            "email": "mike@example.com",
         },
         "delivery_address": {
             "street": "45 Market St",
@@ -225,14 +366,14 @@ order_requests = {
             "buz": "12",
             "city": "San Francisco",
             "state": "CA",
-            "zip": "94103"
+            "zip": "94103",
         },
         "delivery_provider": {
             "provider_name": "DoorDash",
             "status": "assigned",
             "delivery_id": "DD-7890",
             "tracking_url": "https://doordash.com/track/DD-7890",
-            "pickup_date": "2026-02-07T13:15:00Z"
+            "pickup_date": "2026-02-07T13:15:00Z",
         },
         "payments": [
             {
@@ -242,7 +383,7 @@ order_requests = {
                 "card_holder": "",
                 "auth_code": "",
                 "transaction_id": "DDPAY123",
-                "token": ""
+                "token": "",
             }
         ],
         "items": [
@@ -256,12 +397,11 @@ order_requests = {
                 "who": "Kitchen",
                 "group_id": "pizza",
                 "notes": "",
-                "modifiers": []
+                "modifiers": [],
             }
         ],
-        "coupons": []
+        "coupons": [],
     },
-
     "coupon_and_partial_payment": {
         "tVer": "1.0",
         "order_id": 1005,
@@ -274,9 +414,7 @@ order_requests = {
         "deferred_date": "",
         "misc_charges": [],
         "tip": 3.00,
-        "taxes": [
-            {"tax_name": "Sales Tax", "tax_amount": 1.50}
-        ],
+        "taxes": [{"tax_name": "Sales Tax", "tax_amount": 1.50}],
         "is_tax_exempt": False,
         "order_total": 20.50,
         "balance_owing": 5.50,
@@ -287,7 +425,7 @@ order_requests = {
             "company": "",
             "phone": "5558889999",
             "ext": "",
-            "email": "alex@example.com"
+            "email": "alex@example.com",
         },
         "delivery_address": None,
         "delivery_provider": None,
@@ -299,7 +437,7 @@ order_requests = {
                 "card_holder": "Alex Kim",
                 "auth_code": "AUTH555",
                 "transaction_id": "TXN555",
-                "token": "tok_xyz555"
+                "token": "tok_xyz555",
             }
         ],
         "items": [
@@ -313,7 +451,7 @@ order_requests = {
                 "who": "Kitchen",
                 "group_id": "pizza",
                 "notes": "",
-                "modifiers": []
+                "modifiers": [],
             }
         ],
         "coupons": [
@@ -322,9 +460,8 @@ order_requests = {
                 "plu": "CPN5",
                 "name": "$5 Off",
                 "value": 5.00,
-                "group_id": "promo"
+                "group_id": "promo",
             }
-        ]
-    }
+        ],
+    },
 }
-

@@ -3,9 +3,10 @@ package handler
 import (
 	"io"
 	"net/http"
-	"quicc/online/internal/domain/order"
 	"strconv"
 	"time"
+
+	"quicc/online/internal/domain/order"
 
 	orderApp "quicc/online/internal/app/order"
 
@@ -17,26 +18,38 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	newOrder := orderApp.OrderRequest{}
 	if err := c.Bind(&newOrder); err != nil {
 		h.log.Error().Err(err).Msg("Unable to bind request")
-		return c.String(http.StatusBadRequest, "Unable to bind request")
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request", "message": "Unable to bind data, please check the order body"})
 	}
 	h.log.Debug().Msg("Order request bound")
 	raw_payload, err := io.ReadAll(c.Request().Body)
 	if err != nil {
-		return c.String(http.StatusBadRequest, "Unable to read request body")
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request", "message": "Unable to bind data, please check the order body"})
 	}
 	h.log.Debug().Msg("Request body read")
-	dateParsed, err := time.Parse(time.RFC3339, newOrder.SubmittedDate)
+	// Log the submitted date to the console
+	layout := "2006-01-02T15:04:05-0300"
+
+	h.log.Debug().Str("submitted_date", newOrder.SubmittedDate).Msg("Submitted date")
+
+	h.log.Debug().Str("valid_date", time.Now().Format(layout)).Msg("time.Now().Format(layout) result")
+
+	// Parse the submitted date
+	dateParsed, err := time.Parse(layout, newOrder.SubmittedDate)
 	if err != nil {
-		return c.String(http.StatusBadRequest, "Unable to parse date")
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request", "message": "Unable to parse order submission date"})
 	}
-	h.log.Debug().Msg("Date parsed")
+	h.log.Debug().Msg("Date parsed successfull")
 	dateCreated := dateParsed.Format("2006-01-02")
-	h.orderSvc.Create(orderApp.CreateOrderCommand{
+	out, err := h.orderSvc.Create(orderApp.CreateOrderCommand{
 		OrderID:     strconv.Itoa(newOrder.OrderID),
 		Payload:     string(raw_payload),
 		DateCreated: dateCreated,
 		CreatedAt:   newOrder.SubmittedDate,
 	})
+	if err != nil {
+		h.log.Error().Err(err).Msg("Error creating order")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error creating order", "message": "Unable to create order"})
+	}
 	h.log.Debug().Msg("Relaying to Publisher")
 	err = h.orderSvc.RelayOrder(orderApp.RelayOrderCommand{
 		OrderID: strconv.Itoa(newOrder.OrderID),
@@ -49,11 +62,11 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	})
 	if err != nil {
 		h.log.Error().Err(err).Msg("Error relaying order")
-		return c.String(http.StatusInternalServerError, "Error relaying order")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error relaying order", "message": "Unable to relay order"})
 	}
 	h.log.Debug().Msg("Order relay successful")
 	h.log.Info().Msg("Order request processed successfully")
-	return c.String(http.StatusCreated, "Created order")
+	return c.JSON(http.StatusCreated, out)
 }
 
 // TODO: Implement
