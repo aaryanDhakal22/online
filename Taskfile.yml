@@ -61,4 +61,4 @@ tasks:
   transport-compose:
     desc: Send the docker-compose file to production
     cmds: 
-      - scp {{.PROD_CONFIG}} lightsail-api:~
+      - scp {{.PROD_CONFIG}} lightsail-api:/opt/online/docker/docker-compose.yml

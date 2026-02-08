@@ -6,7 +6,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION=${AWS_REGION}
     env_file:
-      - .env.prod
+      - .env
     container_name: quicc_online_backend
     restart: always
     ports:
@@ -22,6 +22,7 @@ services:
     environment:
       - CF_API_TOKEN=${CF_API_TOKEN}
     volumes:
+      - ./cloudflare.ini:/etc/letsencrypt/cloudflare.ini:ro
       - letsencrypt:/etc/letsencrypt
     entrypoint: /bin/sh -c "sleep infinity"
 
@@ -31,7 +32,6 @@ services:
     restart: unless-stopped
     volumes:
       - letsencrypt:/etc/letsencrypt
-      - webroot:/var/www/certbot
     ports:
       - "80:80"
     depends_on:
