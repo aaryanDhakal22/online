@@ -15,6 +15,7 @@ type Config struct {
 	AppEnv        string
 	LogLevel      zerolog.Level
 	LogOutput     io.Writer
+	Domain        string
 	Queuename     string
 	LogStyle      string
 	ServerPort    string
@@ -37,16 +38,22 @@ func NewConfig() *Config {
 	config.RedisPassword = getEnv("REDIS_PASS")
 	config.AdminPassHash = getEnv("ADMIN_PASS_HASH")
 	config.Queuename = getEnv("QUEUE_NAME")
-	log.Info().Msg("Config loaded")
-	log.Info().Msgf("AppEnv: %s", config.AppEnv)
-	log.Info().Msgf("LogLevel: %s", config.LogLevel)
-	log.Info().Msgf("LogOutput: %s", config.LogOutput)
-	log.Info().Msgf("LogStyle: %s", config.LogStyle)
-	log.Info().Msgf("ServerPort: %s", config.ServerPort)
-	log.Info().Msgf("RedisPort: %s", config.RedisPort)
-	log.Info().Msgf("RedisPassword: %s", config.RedisPassword)
-	log.Info().Msgf("AdminPassHash: %s", config.AdminPassHash)
-	log.Info().Msgf("Queuename: %s", config.Queuename)
+	config.Domain = getEnv("DOMAIN")
+
+	zerolog.SetGlobalLevel(config.LogLevel)
+
+	log.Debug().Msg("========Config loaded ==========")
+	log.Debug().Msgf("AppEnv: %s", config.AppEnv)
+	log.Debug().Msgf("LogLevel: %s", config.LogLevel)
+	log.Debug().Msgf("LogOutput: %s", config.LogOutput)
+	log.Debug().Msgf("LogStyle: %s", config.LogStyle)
+	log.Debug().Msgf("ServerPort: %s", config.ServerPort)
+	log.Debug().Msgf("RedisPort: %s", config.RedisPort)
+	log.Debug().Msgf("RedisPassword: %s", config.RedisPassword)
+	log.Debug().Msgf("AdminPassHash: %s", config.AdminPassHash)
+	log.Debug().Msgf("Queuename: %s", config.Queuename)
+	log.Debug().Msgf("Domain: %s", config.Domain)
+	log.Debug().Msg("=================================")
 
 	return &config
 }

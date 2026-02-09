@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 func NewLogger(level zerolog.Level, output io.Writer, style string) zerolog.Logger {
@@ -14,6 +15,6 @@ func NewLogger(level zerolog.Level, output io.Writer, style string) zerolog.Logg
 	}
 	zer = zerolog.ConsoleWriter{Out: output}
 	zerolog.SetGlobalLevel(zerolog.Level(level))
-
+	log.Logger = log.Output(zer)
 	return zerolog.New(zer).With().Timestamp().Logger()
 }

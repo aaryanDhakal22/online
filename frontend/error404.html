@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>404 - Page Not Found</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #020617;
+            --text: #e5e7eb;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, #020617, var(--bg));
+            color: var(--text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 2rem;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            color: var(--muted);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        img {
+            width: 100%;
+            max-width: 320px;
+            border-radius: 10px;
+            margin: 1rem auto;
+            display: block;
+        }
+
+        .actions {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        a {
+            text-decoration: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            color: #020617;
+            background: var(--accent);
+            transition: transform 0.1s ease, opacity 0.1s ease;
+        }
+
+        a.secondary {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        a:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+
+        footer {
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <main class="card">
+        <h1>404</h1>
+        <p>Page not found. The cat is confused. So are we.</p>
+
+        <!-- HTTP Cat image -->
+        <img src="https://http.cat/404" alt="HTTP 404 Cat" loading="lazy" />
+
+        <div class="actions">
+            <a href="/">Go Home</a>
+            <a href="javascript:history.back()" class="secondary">Go Back</a>
+        </div>
+
+        <footer>
+            HTTP status 404 • Not Found
+        </footer>
+    </main>
+</body>
+
+</html>
