@@ -16,17 +16,6 @@ services:
       redis:
         condition: service_healthy
 
-
-  certbot:
-    image: certbot/dns-cloudflare:latest
-    container_name: quicc_certbot
-    environment:
-      - CF_API_TOKEN=${CF_API_TOKEN}
-    volumes:
-      - ./cloudflare.ini:/etc/letsencrypt/cloudflare.ini:ro
-      - letsencrypt:/etc/letsencrypt
-    entrypoint: /bin/sh -c "sleep infinity"
-
   proxy:
     image: ghcr.io/quiccpos/online-nginx:latest
     container_name: quicc_online_proxy
@@ -34,73 +23,43 @@ services:
     depends_on:
       certbot_init:
         condition: service_completed_successfully
-      backend:
+      api:
         condition: service_started
     volumes:
       - letsencrypt:/etc/letsencrypt
-      - letsencrypt_www:/var/www/certbot
     ports:
       - "80:80"
       - "443:443"
-    depends_on:
-      - api 
 
   certbot_init:
-    image: certbot/certbot:latest
+    image: certbot/dns-cloudflare:latest
     container_name: quicc_certbot_init
     env_file:
       - .env
     volumes:
       - letsencrypt:/etc/letsencrypt
       - letsencrypt_logs:/var/log/letsencrypt
-    entrypoint: /bin/sh -c
-    command: >
-      set -e;
-      mkdir -p /run/secrets;
-      printf "%s" "$${CF_API_TOKEN}" > /run/secrets/cf_api_token;
-      chmod 600 /run/secrets/cf_api_token;
-      if [ -e /etc/letsencrypt/live/$${DOMAIN}/fullchain.pem ]; then
-        echo "Certificate already exists, skipping certbot";
-        exit 0;
-      fi;
-      certbot certonly
-      --non-interactive
-      --agree-tos
-      --email $${LE_EMAIL}
-      --dns-cloudflare
-      --dns-cloudflare-credentials /run/secrets/cf_api_token
-      --dns-cloudflare-propagation-seconds 20
-      -d "$${DOMAIN}"
-      -d "*.$${DOMAIN}";
+      - ./certbot.sh:/certbot.sh:ro
+    entrypoint: /certbot.sh
+    command: ["init"]
+      
 
 
   certbot_renew:
     image: certbot/dns-cloudflare:latest
     container_name: quicc_certbot_renew
     restart: unless-stopped
+    depends_on:
+      certbot_init:
+        condition: service_completed_successfully
     env_file:
       - .env
     volumes:
       - letsencrypt:/etc/letsencrypt
       - letsencrypt_logs:/var/log/letsencrypt
-    entrypoint: /bin/sh -c
-    command: >
-      set -e;
-      mkdir -p /run/secrets;
-      printf "%s" "$${CF_API_TOKEN}" > /run/secrets/cf_api_token;
-      chmod 600 /run/secrets/cf_api_token;
-      echo "Starting certbot renew";
-      while :; do
-        certbot renew
-        --non-interactive
-
-        --email $${LE_EMAIL}
-        --dns-cloudflare
-        --dns-cloudflare-credentials /run/secrets/cf_api_token
-        --dns-cloudflare-propagation-seconds 20;
-        --deploy-hook "nginx -s reload || true";
-        sleep 12h;
-      done;
+      - ./certbot.sh:/certbot.sh:ro
+    entrypoint: /certbot.sh
+    command: ["renew"]
 
   redis:
     container_name: quicc_online_redis
@@ -119,4 +78,3 @@ services:
 volumes:
   letsencrypt:
   letsencrypt_logs:
-  letsencrypt_www:
