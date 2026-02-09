@@ -1,11 +1,18 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
+	"strings"
 
 	keyApp "quicc/online/internal/app/key"
 
 	"github.com/labstack/echo/v4"
+)
+
+var (
+	ErrMissingAuthHeader = errors.New("authorization header missing")
+	ErrInvalidAuthHeader = errors.New("invalid authorization header format")
 )
 
 func (h *Handler) Generate(c echo.Context) error {
@@ -39,28 +46,44 @@ func (h *Handler) Set(c echo.Context) error {
 	})
 }
 
+func ExtractBearerToken(c echo.Context) (string, error) {
+	authHeader := c.Request().Header.Get(echo.HeaderAuthorization)
+	if authHeader == "" {
+		return "", ErrMissingAuthHeader
+	}
+
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		return "", ErrInvalidAuthHeader
+	}
+
+	token := strings.TrimSpace(parts[1])
+	if token == "" {
+		return "", ErrInvalidAuthHeader
+	}
+
+	return token, nil
+}
+
 func (h *Handler) Verify(c echo.Context) error {
 	h.log.Info().Msg("Verifying key")
 
-	// Get the bearer token from the request header
-	token := c.Request().Header.Get("Authorization")
-	if token == "" {
-		h.log.Error().Msg("No token provided")
-		return c.String(http.StatusBadRequest, "No token provided")
+	token, err := ExtractBearerToken(c)
+	if err != nil {
+		h.log.Warn().Err(err).Msg("Invalid/missing authorization header")
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": err.Error(),
+		})
 	}
-	// Split the token into the bearer and the token
-	bearer, token := token[0:6], token[7:]
-	if bearer != "Bearer" {
-		h.log.Error().Msg("Invalid token")
-		return c.String(http.StatusBadRequest, "Invalid token")
-	}
-	// Verify the token
+
 	res, err := h.keySvc.Verify(c.Request().Context(), keyApp.VerifyKeyCommand{
 		Key: token,
 	})
 	if err != nil {
 		h.log.Error().Err(err).Msg("Unable to verify key")
-		return c.String(http.StatusInternalServerError, "Unable to verify key")
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "unable to verify key",
+		})
 	}
 
 	return c.JSON(http.StatusOK, res)
