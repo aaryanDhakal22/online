@@ -3,9 +3,8 @@ package orderApp
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"quicc/online/internal/domain/order"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -39,7 +38,7 @@ func (s *OrderService) Create(cmd CreateOrderCommand) (*CreateOrderResult, error
 	}
 	s.logger.Info().Msg("Order was successfully created.")
 	return &CreateOrderResult{
-		Status:          "success",
+		Status:          "ordered",
 		ExtOrderID:      fmt.Sprintf("brygid-%v", order.ID),
 		OrderPlacedTime: time.Now().Format(time.RFC3339),
 	}, nil
