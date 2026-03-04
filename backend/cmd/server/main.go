@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
 	"quicc/online/internal/infra/config"
 	"quicc/online/internal/infra/database/models"
 	"quicc/online/internal/infra/database/repositories"
 	"quicc/online/internal/infra/message"
+	"quicc/online/internal/infra/notify"
 	"quicc/online/internal/migrations"
 	"quicc/online/internal/shared"
 	"quicc/online/internal/transport"
@@ -85,6 +87,9 @@ func main() {
 	mb := message.NewMessageBroker(cfg.Queuename, logger)
 	logger.Info().Msg("Connected to Message Broker")
 
+	// Setup Notifier
+	notifier := notify.NewNotifier(cfg.PushoverAppToken, cfg.PushoverUsers)
+
 	// Setup KeyStore
 	keyQueries := models.New(db)
 	keyStore := repositories.NewKeyRepository(keyQueries, logger)
@@ -100,7 +105,7 @@ func main() {
 	adminMiddleware := custom_middlewares.AdminPasscodeMiddleware(cfg.AdminPassHash)
 
 	// Setup Handlers
-	handler := handler.NewHandler(keyService, orderService, logger)
+	handler := handler.NewHandler(keyService, orderService, notifier, logger)
 
 	// Setup Server
 	server := echo.New()

@@ -12,16 +12,18 @@ import (
 )
 
 type Config struct {
-	AppEnv        string
-	LogLevel      zerolog.Level
-	LogOutput     io.Writer
-	Domain        string
-	Queuename     string
-	LogStyle      string
-	ServerPort    string
-	RedisPort     string
-	RedisPassword string
-	AdminPassHash string
+	AppEnv           string
+	LogLevel         zerolog.Level
+	LogOutput        io.Writer
+	Domain           string
+	Queuename        string
+	LogStyle         string
+	ServerPort       string
+	RedisPort        string
+	RedisPassword    string
+	AdminPassHash    string
+	PushoverAppToken string
+	PushoverUsers    map[string]string
 }
 
 func NewConfig() *Config {
@@ -39,6 +41,8 @@ func NewConfig() *Config {
 	config.AdminPassHash = getEnv("ADMIN_PASS_HASH")
 	config.Queuename = getEnv("QUEUE_NAME")
 	config.Domain = getEnv("DOMAIN")
+	config.PushoverAppToken = getEnv("PUSHOVER_APP_TOKEN")
+	config.PushoverUsers = getNotificationUsers()
 
 	zerolog.SetGlobalLevel(config.LogLevel)
 
@@ -97,4 +101,15 @@ func getEnv(key string) string {
 		panic("Environment variable " + key + " is not set")
 	}
 	return value
+}
+
+func getNotificationUsers() map[string]string {
+	boss := os.Getenv("NOTIFICATION_BOSS")
+	aaryan := os.Getenv("NOTIFICATION_AARYAN")
+
+	users := make(map[string]string)
+	users["boss"] = boss
+	users["aaryan"] = aaryan
+
+	return users
 }
