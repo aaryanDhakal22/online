@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -40,8 +41,9 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	}
 	h.log.Debug().Msg("Date parsed successfull")
 	dateCreated := dateParsed.Format("2006-01-02")
+	orderID := strconv.Itoa(newOrder.OrderID)
 	out, err := h.orderSvc.Create(orderApp.CreateOrderCommand{
-		OrderID:     strconv.Itoa(newOrder.OrderID),
+		OrderID:     orderID,
 		Payload:     string(raw_payload),
 		DateCreated: dateCreated,
 		CreatedAt:   newOrder.SubmittedDate,
@@ -66,6 +68,7 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	}
 	h.log.Debug().Msg("Order relay successful")
 	h.log.Info().Msg("Order request processed successfully")
+	h.notifier.Send(fmt.Sprintf("Order ID: %s, Date Created: %s", orderID, dateCreated))
 	return c.JSON(http.StatusCreated, out)
 }
 
