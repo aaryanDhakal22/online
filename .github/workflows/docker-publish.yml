@@ -18,13 +18,13 @@ jobs:
           - name: api
             context: ./backend
             file: ./backend/Dockerfile
-            image: ghcr.io/aaryanDhakal22/online-api
+            image: ghcr.io/aaryandhakal22/online-api
             target: runtime
 
           - name: proxy
             context: .
             file: ./nginx/Dockerfile
-            image: ghcr.io/aaryanDhakal22/online-nginx
+            image: ghcr.io/aaryandhakal22/online-nginx
             targer: dev
     steps:
       - name: Checkout
