@@ -2,7 +2,7 @@ name: Build and publish (GHCR)
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   workflow_dispatch: {}
 
 permissions:
@@ -18,13 +18,13 @@ jobs:
           - name: api
             context: ./backend
             file: ./backend/Dockerfile
-            image: ghcr.io/quiccpos/online-api
+            image: ghcr.io/aaryanDhakal22/online-api
             target: runtime
 
           - name: proxy
             context: .
             file: ./nginx/Dockerfile
-            image: ghcr.io/quiccpos/online-nginx
+            image: ghcr.io/aaryanDhakal22/online-nginx
             targer: dev
     steps:
       - name: Checkout
@@ -92,4 +92,3 @@ jobs:
             # Optional: show status
             docker-compose -f docker-compose.prod.yml ps
           EOF
-
