@@ -45,7 +45,7 @@ func NewMessageBroker(queueName string, logger zerolog.Logger) *MessageBroker {
 	}
 
 	mbLogger.Debug().Msgf("Got queue URL: %v", *out.QueueUrl)
-	mbLogger.Info().Msgf("Created new message broker for queue %s", queueName)
+	mbLogger.Debug().Msgf("Created new message broker for queue %s", queueName)
 
 	return &MessageBroker{
 		sqsClient: sqsClient,

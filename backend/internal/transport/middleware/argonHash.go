@@ -15,6 +15,9 @@ func AdminPasscodeMiddleware(ADMIN_PASS_HASH string) echo.MiddlewareFunc {
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			reqPath := c.Request().URL.Path
+			matchedPath := c.Path()
+			log.Debug().Msgf("reqPath: %s, matchedPath: %s", reqPath, matchedPath)
 			pass := strings.TrimSpace(c.Request().Header.Get("X-Admin-Passcode"))
 			if pass == "" {
 				mwLogger.Warn().Msg("missing admin passcode")

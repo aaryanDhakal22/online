@@ -9,6 +9,7 @@ import (
 	"quicc/online/internal/infra/database/models"
 	"quicc/online/internal/infra/database/repositories"
 	"quicc/online/internal/infra/message"
+	"quicc/online/internal/infra/notify"
 	"quicc/online/internal/migrations"
 	"quicc/online/internal/shared"
 	"quicc/online/internal/transport"
@@ -19,7 +20,6 @@ import (
 	handler "quicc/online/internal/transport/handlers"
 	custom_middlewares "quicc/online/internal/transport/middleware"
 
-	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
@@ -35,21 +35,15 @@ func applySchema(db *sql.DB) {
 		fmt.Println("Error opening schema file")
 		panic(err)
 	}
-	log.Info().Msg("Schema file opened")
+	log.Debug().Msg("Schema file opened")
 	if _, err := db.Exec(string(schemaFile)); err != nil {
 		fmt.Println("Error applying schema")
 		panic(err)
 	}
-	log.Info().Msg("Schema applied")
+	log.Debug().Msg("Schema applied")
 }
 
 func main() {
-	// Load .env filez
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Error loading .env file, please check your .env file")
-	}
-
 	// Config Setup
 	cfg := config.NewConfig()
 
@@ -70,17 +64,17 @@ func main() {
 	logger.Info().Msg("Connected to database")
 
 	// Setup Redis
-	logger.Info().Msg("Connecting to Redis")
-	logger.Info().Msg(fmt.Sprintf("Connecting to Redis on %s", cfg.RedisPort))
+	logger.Debug().Msg("Connecting to Redis")
+	logger.Debug().Msg(fmt.Sprintf("Connecting to Redis on %s", cfg.RedisPort))
 
-	logger.Info().Msg(fmt.Sprintf("Connecting to Redis with password %s", cfg.RedisPassword))
+	logger.Debug().Msg(fmt.Sprintf("Connecting to Redis with password %s", cfg.RedisPassword))
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("redis:%s", cfg.RedisPort),
 		Password: cfg.RedisPassword,
 		DB:       0,
 	})
 	// Test Redis
-	logger.Info().Msg("Testing Redis connection")
+	logger.Debug().Msg("Testing Redis connection")
 	_, err = redisClient.Ping(context.Background()).Result()
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Error connecting to Redis")
@@ -89,9 +83,12 @@ func main() {
 	logger.Info().Msg("Connected to Redis")
 
 	// Setup Message Broker
-	logger.Info().Msg("Connecting to Message Broker")
+	logger.Debug().Msg("Connecting to Message Broker")
 	mb := message.NewMessageBroker(cfg.Queuename, logger)
 	logger.Info().Msg("Connected to Message Broker")
+
+	// Setup Notifier
+	notifier := notify.NewNotifier(cfg.PushoverAppToken, cfg.PushoverUsers)
 
 	// Setup KeyStore
 	keyQueries := models.New(db)
@@ -108,12 +105,15 @@ func main() {
 	adminMiddleware := custom_middlewares.AdminPasscodeMiddleware(cfg.AdminPassHash)
 
 	// Setup Handlers
-	handler := handler.NewHandler(keyService, orderService, logger)
+	handler := handler.NewHandler(keyService, orderService, notifier, logger)
 
 	// Setup Server
 	server := echo.New()
 
-	transport.AddDefaultMiddlewares(server)
+	server.HideBanner = true
+	server.HidePort = true
+
+	transport.AddDefaultMiddlewares(server, logger, cfg.Domain)
 
 	transport.RegisterRoutes(server, &transport.CMS{
 		AuthMiddleware:  authMiddleware,

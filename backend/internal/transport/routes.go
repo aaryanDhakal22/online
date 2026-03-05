@@ -24,21 +24,15 @@ func RegisterRoutes(e *echo.Echo, cms *CMS, handler *handler.Handler) {
 
 	v1.GET("/verify", handler.Verify)
 
-	protected := v1.Group("")
-
-	protected.Use(cms.AuthMiddleware)
-
-	admin := v1.Group("")
-
-	admin.Use(cms.AdminMiddleware)
-
 	v1.GET("/generate", handler.Generate)
 
-	admin.GET("/set", handler.Set)
+	// Admin middleware
+	v1.GET("/set", handler.Set, cms.AdminMiddleware)
 
-	protected.POST("/order", handler.CreateOrder)
+	// Protected middleware
+	v1.POST("/order", handler.CreateOrder, cms.AuthMiddleware)
 
-	protected.GET("/order/todays", handler.GetTodaysOrders)
+	v1.GET("/order/todays", handler.GetTodaysOrders, cms.AuthMiddleware)
 
-	protected.GET("/order/latest", handler.GetLatestOrder)
+	v1.GET("/order/latest", handler.GetLatestOrder, cms.AuthMiddleware)
 }

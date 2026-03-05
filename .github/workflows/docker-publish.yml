@@ -83,12 +83,13 @@ jobs:
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
 
             # Pull and restart using prod compose
-            docker-compose -f docker-compose.prod.yml pull
-            docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
+            
+            docker-compose pull
+            docker-compose up -d
 
             # Cleanup old layers
             docker image prune -f
 
             # Optional: show status
-            docker-compose -f docker-compose.prod.yml ps
+            docker-compose ps
           EOF

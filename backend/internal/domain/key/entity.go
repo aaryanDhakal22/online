@@ -18,7 +18,7 @@ func NewAPIKey() (*APIKey, error) {
 	newKey := new(APIKey)
 	newKey.ID = fmt.Sprintf("%x", time.Now().UnixNano())
 	newKey.Status = Primed
-	b := make([]byte, 48)
+	b := make([]byte, 24)
 	if _, err := rand.Read(b); err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return &APIKey{}, err
