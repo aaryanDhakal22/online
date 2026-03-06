@@ -2,6 +2,7 @@ package message
 
 import (
 	"context"
+
 	"quicc/online/internal/domain/order"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -55,6 +56,7 @@ func NewMessageBroker(queueName string, logger zerolog.Logger) *MessageBroker {
 }
 
 func (mb *MessageBroker) Publish(orderID string, order order.Order) error {
+	// Flattening converts the struct to a stringified JSON
 	mb.logger.Debug().Msgf("Flattening order %s", orderID)
 	orderString, err := order.Flatten()
 	if err != nil {

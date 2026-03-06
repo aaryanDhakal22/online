@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"quicc/online/internal/domain/order"
 	"strconv"
 	"time"
+
+	"quicc/online/internal/domain/order"
 
 	orderApp "quicc/online/internal/app/order"
 
@@ -15,25 +17,26 @@ import (
 
 func (h *Handler) CreateOrder(c echo.Context) error {
 	h.log.Info().Msg("Order request received")
-	newOrder := orderApp.OrderRequest{}
-	if err := c.Bind(&newOrder); err != nil {
-		h.log.Error().Err(err).Msg("Unable to bind request")
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request", "message": "Unable to bind data, please check the order body"})
-	}
-	h.log.Debug().Msg("Order request bound")
+
 	raw_payload, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		h.log.Error().Err(err).Msg("Unable to read request body")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request", "message": "Unable to bind data, please check the order body"})
 	}
-	h.log.Debug().Msg("Request body read")
-	// Log the submitted date to the console
+
+	// Parse into a struct
+	var newOrder orderApp.OrderRequest
+	err = json.Unmarshal(raw_payload, &newOrder)
+	if err != nil {
+		h.log.Error().Err(err).Msg("Unable to unmarshal request body")
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request", "message": "Unable to bind data, please check the order body"})
+	}
+	h.log.Debug().Msg("Order request bound")
+
 	// layout := "2006-01-02T15:04:05-0300"
 	layout := time.RFC3339
 
 	h.log.Debug().Str("submitted_date", newOrder.SubmittedDate).Msg("Submitted date")
-
-	h.log.Debug().Str("valid_date", time.Now().Format(layout)).Msg("time.Now().Format(layout) result")
 
 	// Parse the submitted date
 	dateParsed, err := time.Parse(layout, newOrder.SubmittedDate)
