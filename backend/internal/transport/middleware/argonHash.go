@@ -15,6 +15,7 @@ func AdminPasscodeMiddleware(ADMIN_PASS_HASH string) echo.MiddlewareFunc {
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			mwLogger.Debug().Msgf("Checking if admin passcode is valid")
 			reqPath := c.Request().URL.Path
 			matchedPath := c.Path()
 			log.Debug().Msgf("reqPath: %s, matchedPath: %s", reqPath, matchedPath)

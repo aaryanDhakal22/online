@@ -146,7 +146,7 @@ def send_one_order_with_key_reset(order):
     print(response.text)
 
 def testing_key_getter():
-    key = client.get(f"/key", headers={
+    key = client.get(f"/getKey", headers={
         "X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"
         }
     )
@@ -158,7 +158,7 @@ def testing_key_getter():
         print("Key not retrieved")
 
 def send_one_order_with_key_set(order):
-    key = client.get(f"/key", headers={
+    key = client.get(f"/getKey", headers={
         "X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"
         }
     )
@@ -180,9 +180,9 @@ print("Tests : ")
 print("1. Send one order with key reset")
 print("2. Send one order with key already set")
 print("3. Test key getter")
-print("3. Test key generation")
-print("4. Test key setting")
-print("5. Test key setting with 2 generations")
+print("4. Test key generation")
+print("5. Test key setting")
+print("6. Test key setting with 2 generations")
 type = input("Enter : ")
 
 match type:
