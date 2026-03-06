@@ -131,5 +131,6 @@ func main() {
 		AdminMiddleware: adminMiddleware,
 	}, handler)
 
+	logger.Info().Msg("Server started")
 	transport.StartServer(context.Background(), server, cfg.ServerPort)
 }
