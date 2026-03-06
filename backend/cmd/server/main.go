@@ -60,6 +60,13 @@ func main() {
 		logger.Fatal().Err(err).Msg("Error opening database")
 		return
 	}
+	// Test DB connection
+	logger.Debug().Msg("Testing database connection")
+	_, err = db.Exec("SELECT 1")
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Error opening database")
+		return
+	}
 
 	applySchema(db)
 
