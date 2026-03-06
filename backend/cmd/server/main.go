@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"quicc/online/internal/infra/config"
 	"quicc/online/internal/infra/database/models"
 	"quicc/online/internal/infra/database/repositories"
@@ -50,7 +51,11 @@ func main() {
 	logger := shared.NewLogger(cfg.LogLevel, cfg.LogOutput, cfg.LogStyle)
 
 	// Database Setup
-	db, err := sql.Open("sqlite", "/tmp/app.db")
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "/data/app.db"
+	}
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Error opening database")
 		return

@@ -10,6 +10,7 @@ services:
     volumes:
       - ../backend:/src
       - ~/.aws:/root/.aws:ro
+      - sqlite_data:/data
     ports:
       - "1323:1323"
     depends_on:
@@ -37,3 +38,6 @@ services:
     ports:
       - "${REDIS_PORT}:6379"
     command: ["redis-server", "--requirepass", "${REDIS_PASS}"]
+
+volumes:
+  sqlite_data:

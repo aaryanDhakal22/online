@@ -12,6 +12,8 @@ services:
     restart: always
     ports:
       - "1323:1323"
+    volumes:
+      - sqlite_data:/data
     depends_on:
       redis:
         condition: service_healthy
@@ -78,3 +80,4 @@ services:
 volumes:
   letsencrypt:
   letsencrypt_logs:
+  sqlite_data:
