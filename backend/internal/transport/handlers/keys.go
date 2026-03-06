@@ -88,3 +88,15 @@ func (h *Handler) Verify(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, res)
 }
+
+func (h *Handler) GetKey(c echo.Context) error {
+	h.log.Info().Msg("Getting key")
+	key, err := h.keySvc.Get(c.Request().Context(), keyApp.GetKeyCommand{})
+	if err != nil {
+		h.log.Error().Err(err).Msg("Unable to get key")
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "unable to get key",
+		})
+	}
+	return c.JSON(http.StatusOK, key)
+}

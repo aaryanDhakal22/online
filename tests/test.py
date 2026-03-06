@@ -127,7 +127,7 @@ def get_and_set_key():
         print("Unable to verify key")
         return None
 
-def send_one_order(order):
+def send_one_order_with_key_reset(order):
     key = get_and_set_key()
     if key is None:
         print("Key not set")
@@ -145,10 +145,62 @@ def send_one_order(order):
     print(response.status_code)
     print(response.text)
 
+def testing_key_getter():
+    key = client.get(f"/key", headers={
+        "X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"
+        }
+    )
+    if key.status_code == 200:
+        print("Key retrieved")
+        print(key.json())
+        
+    else:
+        print("Key not retrieved")
 
-send_one_order(order_requests["brygid_sample_order"])
-# send_one_order(order_requests["basic_pickup_order"])
-# send_one_order(order_requests["delivery_with_address"])
-# send_one_order(order_requests["tax_exempt_corporate_order"])
-# send_one_order(order_requests["third_party_delivery_order"])
-# send_one_order(order_requests["coupon_and_partial_payment"])    
+def send_one_order_with_key_set(order):
+    key = client.get(f"/key", headers={
+        "X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"
+        }
+    )
+    key = key.json()["key"]
+    print(key)
+    order["order_id"] = rd.randint(1000,9999)
+    # pprint(order)
+
+    response = client.post("/order", headers={
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json"
+        },json_data=order)
+
+    #print(response)
+    print(response.status_code)
+    print(response.text)
+
+print("Tests : ")
+print("1. Send one order with key reset")
+print("2. Send one order with key already set")
+print("3. Test key getter")
+print("3. Test key generation")
+print("4. Test key setting")
+print("5. Test key setting with 2 generations")
+type = input("Enter : ")
+
+match type:
+    case "1":
+        sure = input("Are you sure? [y/n]")
+        if sure == "y":
+            send_one_order_with_key_reset(order_requests["basic_pickup_order"])
+        else:
+            print("Cancelled")
+    case "2":
+        send_one_order_with_key_set(order_requests["basic_pickup_order"])
+    case "3":
+        testing_key_getter()
+    case "4":
+        testing_key_generation()
+    case "5":
+        testing_key_setting()
+    case "6":
+        testing_key_setting_with_2_generations()
+    case _:
+        print("Invalid test")

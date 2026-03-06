@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"quicc/online/internal/domain/order"
 	"strconv"
 	"time"
-
-	"quicc/online/internal/domain/order"
 
 	orderApp "quicc/online/internal/app/order"
 
@@ -24,11 +23,13 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	h.log.Debug().Msg("Order request bound")
 	raw_payload, err := io.ReadAll(c.Request().Body)
 	if err != nil {
+		h.log.Error().Err(err).Msg("Unable to read request body")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request", "message": "Unable to bind data, please check the order body"})
 	}
 	h.log.Debug().Msg("Request body read")
 	// Log the submitted date to the console
-	layout := "2006-01-02T15:04:05-0300"
+	// layout := "2006-01-02T15:04:05-0300"
+	layout := time.RFC3339
 
 	h.log.Debug().Str("submitted_date", newOrder.SubmittedDate).Msg("Submitted date")
 
@@ -37,6 +38,7 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	// Parse the submitted date
 	dateParsed, err := time.Parse(layout, newOrder.SubmittedDate)
 	if err != nil {
+		h.log.Error().Err(err).Msg("Error parsing order submission date")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request", "message": "Unable to parse order submission date"})
 	}
 	h.log.Debug().Msg("Date parsed successfull")

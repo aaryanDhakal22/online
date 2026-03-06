@@ -5,9 +5,12 @@ type (
 	SetKeyCommand      struct{}
 )
 
-type ActivateKeyCommand struct {
-	ID string
-}
+type (
+	RetrieveKeyCommand struct{}
+	ActivateKeyCommand struct {
+		ID string
+	}
+)
 type DeactivateKeyCommand struct {
 	ID string
 }
@@ -15,3 +18,4 @@ type DeactivateKeyCommand struct {
 type VerifyKeyCommand struct {
 	Key string
 }
+type GetKeyCommand struct{}

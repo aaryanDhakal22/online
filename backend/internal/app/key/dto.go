@@ -32,3 +32,9 @@ type DeactivateKeyResult struct {
 type VerifyKeyResult struct {
 	Match bool `json:"match"`
 }
+type GetKeyResult struct {
+	Key string `json:"key"`
+}
+type RetrieveKeyResult struct {
+	Key string `json:"key"`
+}

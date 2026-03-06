@@ -15,8 +15,13 @@ class ApiClient():
     def load_env(self):
     
         app_env = os.getenv("APP_ENV")
+        if app_env is None:
+            print("APP_ENV not set")
+            print("Setting app_env to dev")
+            app_env = "dev"
+        app_env = app_env.lower()
         print(f"app_env: {app_env}")
-        if app_env == "dev":
+        if app_env == "dev" :
             self.base_url = os.getenv("DEV_URL")
             self.backend_port = os.getenv("DEV_BACKEND_PORT")
             if self.backend_port is None:
@@ -26,6 +31,8 @@ class ApiClient():
             self.base_url = os.getenv("PROD_URL")
             self.backend_port = None
             self.backend_url = self.base_url
+        else:
+            print("Invalid app env")
 
     def get(self,route,headers=None):
         if headers is None:
