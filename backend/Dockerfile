@@ -39,6 +39,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     -o /out/${BIN} \
     ${MAIN}
 
+RUN mkdir -p /data
+
 #####################################
 ##        DEVELOPMENT IMAGE        ##
 #####################################
@@ -68,6 +70,7 @@ WORKDIR /app
 
 ARG BIN=app
 COPY --from=prod /out/${BIN} /app/${BIN}
+COPY --from=prod --chown=65532:65532 /data /data
 
 EXPOSE 1323
 
