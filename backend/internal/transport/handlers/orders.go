@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"quicc/online/internal/domain/order"
 	"strconv"
 	"time"
-
-	"quicc/online/internal/domain/order"
 
 	orderApp "quicc/online/internal/app/order"
 
@@ -34,16 +33,15 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	h.log.Debug().Msg("Order request bound")
 
 	// layout := "2006-01-02T15:04:05-0300"
-	layout := time.RFC3339
 
-	h.log.Debug().Str("submitted_date", newOrder.SubmittedDate).Msg("Submitted date")
-
-	// Parse the submitted date
-	dateParsed, err := time.Parse(layout, newOrder.SubmittedDate)
+	dateParsed, err := parseSubmittedDate(newOrder.SubmittedDate)
 	if err != nil {
 		h.log.Error().Err(err).Msg("Error parsing order submission date")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request", "message": "Unable to parse order submission date"})
 	}
+	h.log.Debug().Str("submitted_date", newOrder.SubmittedDate).Msg("Submitted date")
+
+	// Parse the submitted date
 	h.log.Debug().Msg("Date parsed successfull")
 	dateCreated := dateParsed.Format("2006-01-02")
 	orderID := strconv.Itoa(newOrder.OrderID)
@@ -85,4 +83,36 @@ func (h *Handler) GetTodaysOrders(c echo.Context) error {
 // TODO: Implement
 func (h *Handler) GetLatestOrder(c echo.Context) error {
 	return c.String(http.StatusOK, "Latest order")
+}
+
+func parseSubmittedDate(submittedDate string) (time.Time, error) {
+	// layout := "2006-01-02T15:04:05-0300"
+	layouts := []string{
+		"2006-01-02T15:04:05-0300",
+		"2006-01-02T15:04:05Z07:00",
+		"2006-01-02T15:04:05",
+		time.RFC3339,
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, submittedDate); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("invalid submitted date format")
+}
+
+func parseSUbmittedDate(submittedDate string) (time.Time, error) {
+	// layout := "2006-01-02T15:04:05-0300"
+	layouts := []string{
+		"2006-01-02T15:04:05-0300",
+		"2006-01-02T15:04:05Z07:00",
+		"2006-01-02T15:04:05",
+		time.RFC3339,
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, submittedDate); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("invalid submitted date format")
 }

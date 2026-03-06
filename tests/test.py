@@ -176,6 +176,7 @@ def send_one_order_with_key_set(order):
     print(response.status_code)
     print(response.text)
 
+
 while True:
     print("Tests : ")
     print("1. Send one order with key reset")
@@ -194,7 +195,7 @@ while True:
             else:
                 print("Cancelled")
         case "2":
-            send_one_order_with_key_set(order_requests["basic_pickup_order"])
+            send_one_order_with_key_set(order_requests["delivery_with_address"])
         case "3":
             testing_key_getter()
         case "4":
