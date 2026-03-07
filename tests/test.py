@@ -18,19 +18,20 @@ else:
 
 #### Testing Key service
 
+
 # Testing key generation
 def testing_key_generation():
     t = []
     for _ in range(10):
-        rk= client.get("/generate")
+        rk = client.get("/generate")
         rpk = rk.json()
-        key= rpk["key"]
+        key = rpk["key"]
         if key is not None:
             t.append(1)
-        #print("Key Generated:",key)
+        # print("Key Generated:",key)
 
     print("## Testing key generation ## ")
-    if sum(t)== 10:
+    if sum(t) == 10:
         print("All keys generated")
     else:
         print("Not all keys generated")
@@ -42,9 +43,8 @@ def testing_key_setting():
     rpk1 = rk1.json()
     key1 = rpk1["key"]
 
-    rpset= client.get(f"/set", headers={
-        "X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"
-        }
+    rpset = client.get(
+        f"/set", headers={"X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"}
     )
 
     if rpset.status_code == 200:
@@ -52,13 +52,12 @@ def testing_key_setting():
     else:
         print("Key not set")
 
-    rp_verify = client.get(f"/verify", headers={
-        "Authorization": f"Bearer {key1}"
-        })
+    rp_verify = client.get(f"/verify", headers={"Authorization": f"Bearer {key1}"})
     rp_json = rp_verify.json()
     print(rp_json)
     match = rp_verify.json()["match"]
-    print("Key match:",match)
+    print("Key match:", match)
+
 
 # Testing setting key with 2 generations and verifying
 def testing_key_setting_with_2_generations():
@@ -69,9 +68,8 @@ def testing_key_setting_with_2_generations():
     rk3 = client.get("/generate")
     rpk3 = rk3.json()
     key3 = rpk3["key"]
-    rpset= client.get(f"/set", headers={
-        "X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"
-        }
+    rpset = client.get(
+        f"/set", headers={"X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"}
     )
     if rpset.status_code == 200:
         print("Key set")
@@ -80,46 +78,40 @@ def testing_key_setting_with_2_generations():
 
     print("Verifying key")
 
-    rp_verify = client.get(f"/verify", headers={
-        "Authorization": f"Bearer {key2}"
-        })
+    rp_verify = client.get(f"/verify", headers={"Authorization": f"Bearer {key2}"})
 
     print(rp_verify)
     rp_json = rp_verify.json()
     print(rp_json)
     match = rp_verify.json()["match"]
-    print("Key match:",match, "(should be false)")
+    print("Key match:", match, "(should be false)")
 
-    rp_verify = client.get(f"/verify", headers={
-        "Authorization": f"Bearer {key3}"
-        })
+    rp_verify = client.get(f"/verify", headers={"Authorization": f"Bearer {key3}"})
     rp_json = rp_verify.json()
     print(rp_json)
     match = rp_verify.json()["match"]
-    print("Key match:",match, "(should be true)")
+    print("Key match:", match, "(should be true)")
 
 
 # testing_key_generation()
 # testing_key_setting()
 # testing_key_setting_with_2_generations()
 
+
 def get_and_set_key():
     rk = client.get("/generate")
     rpk = rk.json()
     key = rpk["key"]
-    rpset= client.get(f"/set", headers={
-        "X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"
-        }
+    rpset = client.get(
+        f"/set", headers={"X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"}
     )
     if rpset.status_code == 200:
         print("Key set")
-        print("Key:",key)
+        print("Key:", key)
     else:
         print("Key not set")
         return
-    verify = client.get(f"/verify", headers={
-        "Authorization": f"Bearer {key}"
-        })
+    verify = client.get(f"/verify", headers={"Authorization": f"Bearer {key}"})
     if verify.status_code == 200 and verify.json()["match"]:
         print("Key match")
         return key
@@ -127,52 +119,55 @@ def get_and_set_key():
         print("Unable to verify key")
         return None
 
+
 def send_one_order_with_key_reset(order):
     key = get_and_set_key()
     if key is None:
         print("Key not set")
         return
 
-    order["order_id"] = rd.randint(1000,9999)
+    order["order_id"] = rd.randint(1000, 9999)
     # pprint(order)
 
-    response = client.post("/order", headers={
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json"
-        },json_data=order)
+    response = client.post(
+        "/order",
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        json_data=order,
+    )
 
-    #print(response)
+    # print(response)
     print(response.status_code)
     print(response.text)
 
+
 def testing_key_getter():
-    key = client.get(f"/getKey", headers={
-        "X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"
-        }
+    key = client.get(
+        f"/getKey", headers={"X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"}
     )
     if key.status_code == 200:
         print("Key retrieved")
         print(key.json())
-        
+
     else:
         print("Key not retrieved")
 
+
 def send_one_order_with_key_set(order):
-    key = client.get(f"/getKey", headers={
-        "X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"
-        }
+    key = client.get(
+        f"/getKey", headers={"X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"}
     )
     key = key.json()["key"]
     print(key)
-    order["order_id"] = rd.randint(1000,9999)
+    order["order_id"] = rd.randint(1000, 9999)
     # pprint(order)
 
-    response = client.post("/order", headers={
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json"
-        },json_data=order)
+    response = client.post(
+        "/order",
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        json_data=order,
+    )
 
-    #print(response)
+    # print(response)
     print(response.status_code)
     print(response.text)
 
@@ -195,7 +190,7 @@ while True:
             else:
                 print("Cancelled")
         case "2":
-            send_one_order_with_key_set(order_requests["delivery_with_address"])
+            send_one_order_with_key_set(order_requests["sample_delayed_order"])
         case "3":
             testing_key_getter()
         case "4":

@@ -1,4 +1,64 @@
 order_requests = {
+        "sample_coupon_order":{"tVer":"1.0.0","order_id":61124111,"store_id":3282,"vendor_store_id":"","store_name":"Lombardi’s Pizza","service_type":"takeout","submitted_date":"2026-03-07T01:11:00-0500","print_date":"2026-03-07T01:11:00-0500","deferred_date":"","misc_charges":[{"misc_charge_name":"delivery_charge","misc_charge_desc":"Delivery Fee","misc_charge_amount":4},{"misc_charge_name":"other_charge","misc_charge_desc":"Service Charge","misc_charge_amount":0.5}],"tip":3.02,"taxes":[{"tax_name":"Sales Tax","tax_amount":1.81}],"is_tax_exempt":False,"order_total":35.05,"balance_owing":0,"notes":"","customer":{"first_name":"ERIK","last_name":"DAVIS","company":"","phone":"4432077156","ext":"","email":"ERIK_TAILS11@YAHOO.COM"},"payments":[{"type":"JCB","amount":35.05,"card_number":"xxxxxxxxxxxxx303","card_holder":"ERIK DAIVS","auth_code":"052482","transaction_id":"","token":""}],"items":[{"name":"Regular Tomato  Cheese Pizza","size_id":2,"size_name":"12 Medium","quantity":1,"price":9.99,"plu":"","who":"","group_id":"","notes":"","modifiers":[{"side":"whole","name":"Add Pineapple","quantity":1,"plu":"","price":1.5,"action":"add"}]},{"name":"Regular Tomato  Cheese Pizza","size_id":3,"size_name":"14 Large","quantity":1,"price":11.99,"plu":"","who":"","group_id":"","notes":"","modifiers":[{"side":"whole","name":"Add Double Cheese","quantity":1,"plu":"","price":1.75,"action":"add"}]},{"name":"Brownies","size_id":1,"size_name":"Serving","quantity":1,"price":4.49,"plu":"","who":"","group_id":"","notes":"","modifiers":[]}],"coupons":None},
+        "sample_delayed_order": {"tVer":"1.0.0","order_id":61124127,"store_id":3282,"vendor_store_id":"","store_name":"Lombardi’s Pizza","service_type":"takeout","submitted_date":"2026-03-07T01:19:00-0500","print_date":"2026-03-16T13:10:00-0400","deferred_date":"2026-03-16T14:10:00-0400","misc_charges":[{"misc_charge_name":"delivery_charge","misc_charge_desc":"Delivery Fee","misc_charge_amount":4},{"misc_charge_name":"other_charge","misc_charge_desc":"Service Charge","misc_charge_amount":0.5}],"tip":0,"taxes":[{"tax_name":"Sales Tax","tax_amount":0.39}],"is_tax_exempt":False,"order_total":6.88,"balance_owing":6.88,"notes":"","customer":{"first_name":"AARYAN","last_name":"DHAKAL","company":"","phone":"6674030865","ext":"","email":"AARYAN.DHAKAL22@GMAIL.COM"},"payments":None,"items":[{"name":"Mozzarella Sticks","size_id":1,"size_name":"6 Piece","quantity":1,"price":5.99,"plu":"","who":"","group_id":"","notes":"","modifiers":[]}],"coupons":None},
+    "sample_real_order": {
+           "tVer":"1.0.0",
+           "order_id":61107760,
+           "store_id":3282,
+           "vendor_store_id":"",
+           "store_name":"Lombardi’s Pizza",
+           "service_type":"takeout",
+           "submitted_date":"2026-03-06T12:51:00-0500",
+           "print_date":"2026-03-06T12:51:00-0500",
+           "misc_charges":[
+             {
+               "misc_charge_name":"other_charge",
+               "misc_charge_desc":"Service Charge",
+               "misc_charge_amount":0.5
+             }
+           ],
+           "taxes":[  
+              {  
+                 "tax_name":"Sales Tax",
+                 "tax_amount":0.11
+              }
+           ],
+           "is_tax_exempt":False,
+           "order_total":1.86,
+           "balance_owing":1.86,
+           "notes":"test",
+           "customer":{  
+              "first_name":"BEN",
+              "last_name":"MANSURIQ",
+              "company":"",
+              "phone":"6046487389",
+              "ext":"",
+              "email":"BENJAMIN.MANSURI@BRYGID.COM"
+           },
+           "items":[  
+              {  
+                 "name":"12 oz Soda",
+                 "size_id":1,
+                 "size_name":"Serving",
+                 "quantity":1,
+                 "price":1.25,
+                 "plu":"",
+                 "who":"",
+                 "group_id":"",
+                 "notes":"",
+                 "modifiers":[  
+                    {  
+                       "side":"whole",
+                       "name":"Coke",
+                       "quantity":1,
+                       "plu":"",
+                       "price":0.0,
+                       "action":"add"
+                    }
+                 ]
+              }
+           ]
+        },
     "brygid_sample_order": {
         "tVer": "1.0.0",
         "order_id": 2102522,
