@@ -21,16 +21,18 @@ func AdminPasscodeMiddleware(ADMIN_PASS_HASH string) echo.MiddlewareFunc {
 			log.Debug().Msgf("reqPath: %s, matchedPath: %s", reqPath, matchedPath)
 			pass := strings.TrimSpace(c.Request().Header.Get("X-Admin-Passcode"))
 			if pass == "" {
-				mwLogger.Warn().Msg("missing admin passcode")
+				mwLogger.Warn().Msg("Missing admin passcode header")
 				return echo.NewHTTPError(http.StatusUnauthorized, "missing admin passcode")
 			}
-			mwLogger.Debug().Msgf("admin passcode received")
+			mwLogger.Debug().Msgf("Admin passcode received %s", pass)
 			match, err := argon2id.ComparePasswordAndHash(pass, encodedHash)
-
+			mwLogger.Debug().Msgf("Comparing admin passcode")
 			if err != nil || !match {
-				mwLogger.Warn().Msgf("invalid admin passcode")
+				mwLogger.Warn().Msgf("Invalid admin passcode")
+				mwLogger.Debug().Msgf("err: %s, match: %t", err, match)
 				return echo.NewHTTPError(http.StatusUnauthorized, "invalid admin passcode")
 			}
+
 			mwLogger.Debug().Msgf("admin passcode matched")
 			defer mwLogger.Debug().Msgf("All good  on admin passcode middleware")
 

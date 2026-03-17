@@ -1,5 +1,5 @@
 # Test if server is running
-
+import secrets
 import random as rd
 from client import ApiClient
 from data import order_requests
@@ -93,6 +93,25 @@ def testing_key_setting_with_2_generations():
     print("Key match:", match, "(should be true)")
 
 
+def testing_custom_key_setting(key):
+    rpset = client.post(
+        f"/setKey",
+        headers={"X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"},
+        json_data={"Key": key},
+    )
+    print("Status code:", rpset.status_code)
+    rp_get_key = client.get(
+        f"/getKey", headers={"X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"}
+    )
+    print("Status code:", rp_get_key.status_code)
+    server_key = rp_get_key.json()["key"]
+    print("Server key:", server_key)
+    if server_key == key:
+        print("Key match")
+    else:
+        print("Key mismatch")
+
+
 # testing_key_generation()
 # testing_key_setting()
 # testing_key_setting_with_2_generations()
@@ -180,6 +199,7 @@ while True:
     print("4. Test key generation")
     print("5. Test key setting")
     print("6. Test key setting with 2 generations")
+    print("7. Test custom key setting")
     type = input("Enter : ")
 
     match type:
@@ -199,5 +219,12 @@ while True:
             testing_key_setting()
         case "6":
             testing_key_setting_with_2_generations()
+        case "7":
+            input_key = input("Enter key: ")
+            if len(input_key) < 5:
+                input_key = secrets.token_urlsafe(32)
+                print(f"Using random key: {input_key}")
+            testing_custom_key_setting(input_key)
         case _:
             print("Invalid test")
+    print("\n\n\n")
