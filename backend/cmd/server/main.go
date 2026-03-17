@@ -121,7 +121,6 @@ func main() {
 	// Setup Server
 	server := echo.New()
 
-	server.HideBanner = true
 	server.HidePort = true
 
 	transport.AddDefaultMiddlewares(server, logger, cfg.Domain)

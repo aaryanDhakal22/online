@@ -12,3 +12,5 @@ type CreateOrderCommand struct {
 	DateCreated string
 	CreatedAt   string
 }
+
+type ReprintLatestOrderCommand struct{}

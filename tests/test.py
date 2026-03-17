@@ -15,8 +15,28 @@ if response.status_code == 200:
 else:
     print("Server is not running")
 
-
 #### Testing Key service
+dev_art = """
+    =========================
+    ██████╗ ███████╗██╗   ██╗
+    ██╔══██╗██╔════╝██║   ██║
+    ██║  ██║█████╗  ██║   ██║
+    ██║  ██║██╔══╝  ╚██╗ ██╔╝
+    ██████╔╝███████╗ ╚████╔╝
+    ╚═════╝ ╚══════╝  ╚═══╝
+    =========================
+    """
+
+prod_art = """
+    =========================
+    ██████╗ ██████╗  ██████╗ ██████╗ 
+    ██╔══██╗██╔══██╗██╔═══██╗██╔══██╗
+    ██████╔╝██████╔╝██║   ██║██║  ██║
+    ██╔═══╝ ██╔══██╗██║   ██║██║  ██║
+    ██║     ██║  ██║╚██████╔╝██████╔╝
+    ╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═════╝
+    =========================
+    """
 
 
 # Testing key generation
@@ -171,6 +191,18 @@ def testing_key_getter():
         print("Key not retrieved")
 
 
+def testing_reprint():
+    print("Testing reprint")
+    rp = client.get(
+        "/reprint/latest", headers={"X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"}
+    )
+    if rp.status_code == 200:
+        print("Reprint successful")
+        print(rp.text)
+    else:
+        print("Reprint failed")
+
+
 def send_one_order_with_key_set(order):
     key = client.get(
         f"/getKey", headers={"X-Admin-Passcode": "KhawarGhafoor931TaylorAvenue"}
@@ -192,6 +224,13 @@ def send_one_order_with_key_set(order):
 
 
 while True:
+    # Add a large ascii art banner with the name of the env prod or dev
+    # =============================================================================
+    if client.env == "dev":
+        print(dev_art)
+    else:
+        print(prod_art)
+
     print("Tests : ")
     print("1. Send one order with key reset")
     print("2. Send one order with key already set")
@@ -200,6 +239,7 @@ while True:
     print("5. Test key setting")
     print("6. Test key setting with 2 generations")
     print("7. Test custom key setting")
+    print("8. Test reprint")
     type = input("Enter : ")
 
     match type:
@@ -225,6 +265,8 @@ while True:
                 input_key = secrets.token_urlsafe(32)
                 print(f"Using random key: {input_key}")
             testing_custom_key_setting(input_key)
+        case "8":
+            testing_reprint()
         case _:
             print("Invalid test")
     print("\n\n\n")

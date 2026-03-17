@@ -3,9 +3,8 @@ package orderApp
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"quicc/online/internal/domain/order"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -52,5 +51,24 @@ func (s *OrderService) RelayOrder(cmd RelayOrderCommand) error {
 		return err
 	}
 	s.logger.Info().Msg("Order was successfully published.")
+	return nil
+}
+
+func (s *OrderService) ReprintLatestOrder(cmd ReprintLatestOrderCommand) error {
+	s.logger.Info().Msg("Reprinting latest order")
+	s.logger.Debug().Msg("Getting latest order")
+	order, err := s.orderRepo.GetLatest(context.TODO())
+	if err != nil {
+		s.logger.Error().Err(err).Msg("Error getting latest order")
+		return err
+	}
+
+	s.logger.Debug().Msg("Publishing order")
+	err = s.mb.Publish(order.ID, *order)
+	if err != nil {
+		s.logger.Error().Err(err).Msg("Error publishing order")
+		return err
+	}
+	s.logger.Debug().Msg("Order was successfully published.")
 	return nil
 }

@@ -32,8 +32,7 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	}
 	h.log.Debug().Msg("Order request bound")
 
-	// layout := "2006-01-02T15:04:05-0300"
-
+	// Parse the submitted date
 	dateParsed, err := parseSubmittedDate(newOrder.SubmittedDate)
 	if err != nil {
 		h.log.Error().Err(err).Msg("Error parsing order submission date")
@@ -41,10 +40,11 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	}
 	h.log.Debug().Str("submitted_date", newOrder.SubmittedDate).Msg("Submitted date")
 
-	// Parse the submitted date
 	h.log.Debug().Msg("Date parsed successfull")
 	dateCreated := dateParsed.Format("2006-01-02")
 	orderID := strconv.Itoa(newOrder.OrderID)
+
+	// Create the order
 	out, err := h.orderSvc.Create(orderApp.CreateOrderCommand{
 		OrderID:     orderID,
 		Payload:     string(raw_payload),
@@ -55,6 +55,8 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 		h.log.Error().Err(err).Msg("Error creating order")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error creating order", "message": "Unable to create order"})
 	}
+
+	// Sending the order to the publisher
 	h.log.Debug().Msg("Relaying to Publisher")
 	err = h.orderSvc.RelayOrder(orderApp.RelayOrderCommand{
 		OrderID: strconv.Itoa(newOrder.OrderID),
@@ -73,6 +75,17 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	h.log.Info().Msg("Order request processed successfully")
 	h.notifier.Send(fmt.Sprintf("Order ID: %s, Date Created: %s", orderID, dateCreated))
 	return c.JSON(http.StatusCreated, out)
+}
+
+func (h *Handler) ReprintLatestOrder(c echo.Context) error {
+	h.log.Info().Msg("Reprinting latest order")
+	err := h.orderSvc.ReprintLatestOrder(orderApp.ReprintLatestOrderCommand{})
+	if err != nil {
+		h.log.Error().Err(err).Msg("Error reprinting latest order")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error reprinting latest order", "message": "Unable to reprint latest order"})
+	}
+	h.log.Info().Msg("Latest order reprinted")
+	return c.String(http.StatusOK, "Latest order reprinted")
 }
 
 // TODO: Implement

@@ -38,5 +38,5 @@ func RegisterRoutes(e *echo.Echo, cms *CMS, handler *handler.Handler) {
 
 	v1.GET("/order/todays", handler.GetTodaysOrders, cms.AuthMiddleware)
 
-	v1.GET("/order/latest", handler.GetLatestOrder, cms.AuthMiddleware)
+	v1.GET("/reprint/latest", handler.ReprintLatestOrder, cms.AdminMiddleware)
 }
