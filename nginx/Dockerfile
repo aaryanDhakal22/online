@@ -1,5 +1,5 @@
 # ONLY FOR PRODUCTION
-FROM nginx:alpine AS dev
+FROM nginx:alpine 
 COPY ./nginx/prod.conf /etc/nginx/conf.d/default.conf
 COPY ./nginx/cloudflare-realip.conf /etc/nginx/conf.d/cloudflare-realip.conf
 COPY ./frontend/ /usr/share/nginx/html/

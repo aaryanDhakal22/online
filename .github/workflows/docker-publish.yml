@@ -25,7 +25,6 @@ jobs:
             context: .
             file: ./nginx/Dockerfile
             image: ghcr.io/aaryandhakal22/online-nginx
-            target: dev
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2

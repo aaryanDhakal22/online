@@ -59,7 +59,7 @@ services:
     volumes:
       - letsencrypt:/etc/letsencrypt
       - letsencrypt_logs:/var/log/letsencrypt
-      - ./certbot.sh:/certbot.sh:ro
+      - ./scripts/certbot.sh:/certbot.sh:ro
     entrypoint: /certbot.sh
     command: ["renew"]
 
