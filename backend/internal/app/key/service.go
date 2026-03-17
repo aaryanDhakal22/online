@@ -49,8 +49,12 @@ func (s *KeyService) Generate(ctx context.Context, cmd GenerateKeyCommand) (*Gen
 		return nil, err
 	}
 
-	if cmd.Key == "" || len(cmd.Key) != 32 {
+	s.logger.Info().Msg("Checking given key or defaulting to random")
+	if cmd.Key != "" { // Check if a new key was provided
+		s.logger.Info().Msg("New key provided, creating new key entity")
 		newKey.Key = cmd.Key
+	} else {
+		s.logger.Info().Msg("No new key provided, setting random key")
 	}
 
 	// Unprime the previous key
