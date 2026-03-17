@@ -76,7 +76,7 @@ jobs:
           ssh ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} << 'EOF'
             set -euo pipefail
 
-            cd /opt/online/docker
+            cd /opt/ingest/
 
             # Login to GHCR for private pulls
 
@@ -84,12 +84,12 @@ jobs:
 
             # Pull and restart using prod compose
             
-            docker-compose pull
-            docker-compose up -d
+            docker compose pull
+            docker compose up -d
 
             # Cleanup old layers
             docker image prune -f
 
             # Optional: show status
-            docker-compose ps
+            docker compose ps
           EOF

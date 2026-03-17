@@ -100,3 +100,37 @@ func (h *Handler) GetKey(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, key)
 }
+
+func (h *Handler) SetKey(c echo.Context) error {
+	h.log.Info().Msg("Setting given key as the active key")
+	var newKey keyApp.GenerateKeyCommand
+	if err := c.Bind(&newKey); err != nil {
+		h.log.Error().Err(err).Msg("Unable to bind request body")
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Unable to bind request body",
+		})
+	}
+
+	_, err := h.keySvc.Generate(c.Request().Context(), newKey)
+	if err != nil {
+		h.log.Error().Err(err).Msg("Unable to generate a new key for the given key")
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Unable to generate a new key for the given key",
+		})
+	}
+
+	key, err := h.keySvc.Set(c.Request().Context(), keyApp.SetKeyCommand{})
+	if err != nil {
+		h.log.Error().Err(err).Msg("Unable to set the new key as the active key")
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Unable to set the new key as the active key",
+		})
+	}
+
+	h.log.Info().Msg("Key set")
+	defer h.log.Info().Msg("Key returned")
+	return c.JSON(http.StatusOK, keyApp.SetKeyResult{
+		ID:  key.ID,
+		Key: key.Key,
+	})
+}

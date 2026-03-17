@@ -49,6 +49,10 @@ func (s *KeyService) Generate(ctx context.Context, cmd GenerateKeyCommand) (*Gen
 		return nil, err
 	}
 
+	if cmd.Key == "" || len(cmd.Key) != 32 {
+		newKey.Key = cmd.Key
+	}
+
 	// Unprime the previous key
 	s.logger.Info().Msg("Unpriming previous key")
 	if err := s.keyRepo.UnprimeAll(ctx); err != nil {

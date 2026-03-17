@@ -1,8 +1,10 @@
 package keyApp
 
 type (
-	GenerateKeyCommand struct{}
-	SetKeyCommand      struct{}
+	GenerateKeyCommand struct {
+		Key string
+	}
+	SetKeyCommand struct{}
 )
 
 type (
@@ -11,6 +13,7 @@ type (
 		ID string
 	}
 )
+
 type DeactivateKeyCommand struct {
 	ID string
 }

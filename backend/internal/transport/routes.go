@@ -29,6 +29,8 @@ func RegisterRoutes(e *echo.Echo, cms *CMS, handler *handler.Handler) {
 	// Admin middleware
 	v1.GET("/set", handler.Set, cms.AdminMiddleware)
 
+	v1.POST("/setKey", handler.SetKey, cms.AdminMiddleware)
+
 	v1.GET("/getKey", handler.GetKey, cms.AdminMiddleware)
 
 	// Protected middleware
