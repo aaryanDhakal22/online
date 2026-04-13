@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+
 	"quicc/online/internal/infra/config"
 	"quicc/online/internal/infra/database/models"
 	"quicc/online/internal/infra/database/repositories"

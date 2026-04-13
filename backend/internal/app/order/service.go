@@ -46,6 +46,7 @@ func (s *OrderService) Create(cmd CreateOrderCommand) (*CreateOrderResult, error
 
 func (s *OrderService) RelayOrder(cmd RelayOrderCommand) error {
 	s.logger.Info().Msg("Relaying order")
+	// TODO: Implement sending to secondary server
 	if err := s.mb.Publish(cmd.OrderID, cmd.Order); err != nil {
 		s.logger.Error().Err(err).Msg("Error publishing order")
 		return err

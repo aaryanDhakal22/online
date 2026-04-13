@@ -73,7 +73,7 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	}
 	h.log.Debug().Msg("Order relay successful")
 	h.log.Info().Msg("Order request processed successfully")
-	h.notifier.Send(fmt.Sprintf("Order ID: %s, Date Created: %s", orderID, dateCreated))
+	// h.notifier.Send(fmt.Sprintf("Order ID: %s, Date Created: %s", orderID, dateCreated))
 	return c.JSON(http.StatusCreated, out)
 }
 
