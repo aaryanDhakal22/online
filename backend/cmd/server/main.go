@@ -96,7 +96,7 @@ func main() {
 
 	// Setup Message Broker
 	logger.Debug().Msg("Connecting to Message Broker")
-	mb := message.NewMessageBroker(cfg.Queuename, logger)
+	mb := message.NewMessageBroker(cfg.Queuename, cfg.StagingQueuename, logger)
 	logger.Info().Msg("Connected to Message Broker")
 
 	// Setup Notifier

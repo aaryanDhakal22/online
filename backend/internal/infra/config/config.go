@@ -17,6 +17,7 @@ type Config struct {
 	LogOutput        io.Writer
 	Domain           string
 	Queuename        string
+	StagingQueuename string
 	LogStyle         string
 	ServerPort       string
 	RedisPort        string
@@ -40,6 +41,7 @@ func NewConfig() *Config {
 	config.RedisPassword = getEnv("REDIS_PASS")
 	config.AdminPassHash = getEnv("ADMIN_PASS_HASH")
 	config.Queuename = getEnv("QUEUE_NAME")
+	config.StagingQueuename = os.Getenv("STAGING_QUEUE_NAME")
 	config.Domain = getEnv("DOMAIN")
 	config.PushoverAppToken = getEnv("PUSHOVER_APP_TOKEN")
 	config.PushoverUsers = getNotificationUsers()
