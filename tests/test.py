@@ -250,7 +250,7 @@ while True:
             else:
                 print("Cancelled")
         case "2":
-            send_one_order_with_key_set(order_requests["delivery_with_address"])
+            send_one_order_with_key_set(order_requests["basic_aaryan_order"])
         case "3":
             testing_key_getter()
         case "4":
