@@ -74,6 +74,7 @@ jobs:
           LOG_LEVEL: info
           LOG_STYLE: console
           SERVER_PORT: "1323"
+          DEV_HOST_PORT: "1323"   # compose defaults the host port to 1324
           RATE_LIMIT_PER_SEC: "0"
           DB_PATH: /data/app.db
           SQS_QUEUE_URL: http://elasticmq:9324/000000000000/dev-ingest
