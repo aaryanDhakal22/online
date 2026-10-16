@@ -139,8 +139,11 @@ Secrets are Doppler-managed in every environment.
 ## Deployment
 
 CI (`.github/workflows/docker-publish.yml`) **builds + pushes images to GHCR
-only** — staging tags on every branch push, `prod-v1.2.3` + `prod-latest` on a
-`v*` semver tag. **It does not deploy or SSH anywhere.** The old CI `deploy`
+only** — branch `staging` → `staging-latest` + `staging-<sha7>`, `master` →
+`prod-latest` + `prod-<sha7>`, a `v*` tag → `<semver>` + `prod-v<semver>`, any
+other branch → `branch-<slug>`. **It does not deploy or SSH anywhere.** (Prod
+still runs **v1**, whose workflow on `master` *does* SSH-deploy — never push
+`master` before the cutover, `../CUTOVER.md`.) The old CI `deploy`
 job (SSH → Lightsail `docker compose pull && up -d`) was removed 2026-07-11;
 rolling a built image out to a host is now **manual** (planned: orchestrated
 from the console), so a plain push / tag can never touch a running host.
