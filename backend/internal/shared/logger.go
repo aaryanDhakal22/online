@@ -1,20 +1,23 @@
 package shared
 
 import (
-	"io"
 	"os"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
-func NewLogger(level zerolog.Level, output io.Writer, style string) zerolog.Logger {
-	var zer zerolog.ConsoleWriter
-	if output == nil {
-		zer = zerolog.ConsoleWriter{Out: os.Stderr}
+// NewLogger builds a zerolog.Logger writing to os.Stderr. Style "json" emits
+// raw JSON; anything else uses zerolog's ConsoleWriter for human-readable
+// output during dev. File-based logging was removed — log shipping happens
+// via the OTLP logs bridge in internal/observability/zlog.go.
+func NewLogger(level zerolog.Level, style string) zerolog.Logger {
+	zerolog.SetGlobalLevel(level)
+	if style == "json" {
+		return zerolog.New(os.Stderr).Level(level).With().Timestamp().Logger()
 	}
-	zer = zerolog.ConsoleWriter{Out: output}
-	zerolog.SetGlobalLevel(zerolog.Level(level))
-	log.Logger = log.Output(zer)
-	return zerolog.New(zer).With().Timestamp().Logger()
+	return zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).
+		Level(level).
+		With().
+		Timestamp().
+		Logger()
 }

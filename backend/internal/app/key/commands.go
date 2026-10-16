@@ -1,24 +1,9 @@
 package keyApp
 
-type (
-	GenerateKeyCommand struct {
-		Key string
-	}
-	SetKeyCommand struct{}
-)
-
-type (
-	RetrieveKeyCommand struct{}
-	ActivateKeyCommand struct {
-		ID string
-	}
-)
-
-type DeactivateKeyCommand struct {
-	ID string
+type GenerateKeyCommand struct {
+	Key string `json:"key"` // optional plaintext; if empty, a random key is generated
 }
 
-type VerifyKeyCommand struct {
-	Key string
+type SetByKeyCommand struct {
+	Key string `json:"key"`
 }
-type GetKeyCommand struct{}

@@ -2,129 +2,202 @@ package keyApp
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
-	"time"
 
 	keys "quicc/online/internal/domain/key"
+	"quicc/online/internal/observability"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
+func newTestSvc(t *testing.T, repo keys.Repository) *KeyService {
+	t.Helper()
+	meters, err := observability.NewMeters()
+	if err != nil {
+		t.Fatalf("NewMeters: %v", err)
+	}
+	return NewKeyService(repo, zerolog.Nop(), meters)
+}
+
 type fakeRepo struct {
-	createErr            error
-	getActiveErr         error
-	getPrimeErr          error
-	getByIDErr           error
-	activateErr          error
-	deactivateAllKeysErr error
-	unprimeAllErr        error
-	deleteErr            error
+	rows map[string]*keys.APIKey
 
-	createCall            int
-	getActiveCall         int
-	getPrimeCall          int
-	getByIDCall           int
-	activateCall          int
-	deactivateAllKeysCall int
-	unprimeCall           int
-	deleteCall            int
+	getActiveErr error
+	getPrimedErr error
 
-	data map[string]keys.APIKey
+	createCount     int
+	activateCount   int
+	deactivateCount int
+	unprimeCount    int
 }
 
-func (f *fakeRepo) Create(ctx context.Context, key *keys.APIKey) error {
-	f.createCall++
-	return f.createErr
-}
-
-func (f *fakeRepo) GetActive(ctx context.Context) (*keys.APIKey, error) {
-	f.getActiveCall++
-	return nil, f.getActiveErr
-}
-
-func (f *fakeRepo) GetPrimed(ctx context.Context) (*keys.APIKey, error) {
-	f.getPrimeCall++
-	return nil, f.getPrimeErr
-}
-
-func (f *fakeRepo) GetByID(ctx context.Context, id string) (*keys.APIKey, error) {
-	f.getByIDCall++
-	return nil, f.getByIDErr
-}
-
-func (f *fakeRepo) Activate(ctx context.Context, id string) error {
-	f.activateCall++
-	return f.activateErr
-}
-
-func (f *fakeRepo) DeactivateAllKeys(ctx context.Context) error {
-	f.deactivateAllKeysCall++
-	return f.deactivateAllKeysErr
-}
-
-func (f *fakeRepo) UnprimeAll(ctx context.Context) error {
-	f.unprimeCall++
-	return f.unprimeAllErr
-}
-
-func (f *fakeRepo) Delete(ctx context.Context, id string) error {
-	f.deleteCall++
-	return f.deleteErr
-}
-
-type fakeRedis struct {
-	data    map[string]any
-	setErr  error
-	setCall int
-}
-
-func (f *fakeRedis) Set(ctx context.Context, key string, value any, expiration time.Duration) *redis.StatusCmd {
-	if f.data == nil {
-		f.data = map[string]any{}
+func (f *fakeRepo) Create(_ context.Context, key *keys.APIKey) error {
+	f.createCount++
+	if f.rows == nil {
+		f.rows = map[string]*keys.APIKey{}
 	}
-	f.data[key] = value
-	f.setCall++
-
-	cmd := redis.NewStatusCmd(ctx)
-	if f.setErr != nil {
-		cmd.SetErr(f.setErr)
-	} else {
-		cmd.SetVal("OK")
-	}
-	return cmd
+	f.rows[key.ID] = key
+	return nil
 }
 
-// Happy Path
-func TestGenerate_AllSuccess(t *testing.T) {
+func (f *fakeRepo) GetActive(_ context.Context) (*keys.APIKey, error) {
+	if f.getActiveErr != nil {
+		return nil, f.getActiveErr
+	}
+	for _, k := range f.rows {
+		if k.Status == keys.Active {
+			return k, nil
+		}
+	}
+	return nil, sql.ErrNoRows
+}
+
+func (f *fakeRepo) GetPrimed(_ context.Context) (*keys.APIKey, error) {
+	if f.getPrimedErr != nil {
+		return nil, f.getPrimedErr
+	}
+	for _, k := range f.rows {
+		if k.Status == keys.Primed {
+			return k, nil
+		}
+	}
+	return nil, sql.ErrNoRows
+}
+
+func (f *fakeRepo) GetByID(_ context.Context, id string) (*keys.APIKey, error) {
+	k, ok := f.rows[id]
+	if !ok {
+		return nil, sql.ErrNoRows
+	}
+	return k, nil
+}
+
+func (f *fakeRepo) Activate(_ context.Context, id string) error {
+	f.activateCount++
+	k, ok := f.rows[id]
+	if !ok {
+		return sql.ErrNoRows
+	}
+	k.Status = keys.Active
+	return nil
+}
+
+func (f *fakeRepo) DeactivateAllKeys(_ context.Context) error {
+	f.deactivateCount++
+	for _, k := range f.rows {
+		if k.Status == keys.Active {
+			k.Status = keys.Inactive
+		}
+	}
+	return nil
+}
+
+func (f *fakeRepo) UnprimeAll(_ context.Context) error {
+	f.unprimeCount++
+	for _, k := range f.rows {
+		if k.Status == keys.Primed {
+			k.Status = keys.Inactive
+		}
+	}
+	return nil
+}
+
+func (f *fakeRepo) Delete(_ context.Context, id string) error {
+	delete(f.rows, id)
+	return nil
+}
+
+func TestBootstrap_SeedsDefaultWhenEmpty(t *testing.T) {
 	repo := &fakeRepo{}
-	rd := &fakeRedis{}
-	svc := NewKeyService(repo, rd, zerolog.Nop())
-	svc.Generate(context.TODO(), GenerateKeyCommand{})
-	assert.Equal(t, 1, repo.unprimeCall)
-	assert.Equal(t, 1, repo.createCall)
+	svc := newTestSvc(t, repo)
+
+	err := svc.Bootstrap(context.Background(), "default-plain")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, repo.createCount)
+
+	ok, err := svc.Verify(context.Background(), "default-plain")
+	assert.NoError(t, err)
+	assert.True(t, ok)
 }
 
-func TestGenerate_UnprimeFails(t *testing.T) {
-	repo := &fakeRepo{unprimeAllErr: errors.New("unable to unprimeall")}
-	rd := &fakeRedis{}
-	svc := NewKeyService(repo, rd, zerolog.Nop())
-	svc.Generate(context.TODO(), GenerateKeyCommand{})
-	assert.Equal(t, 1, repo.unprimeCall)
-	assert.Equal(t, 0, repo.createCall)
+func TestBootstrap_NoOpWhenActiveExists(t *testing.T) {
+	existing := keys.FromExisting("already-here")
+	repo := &fakeRepo{rows: map[string]*keys.APIKey{existing.ID: existing}}
+	svc := newTestSvc(t, repo)
+
+	err := svc.Bootstrap(context.Background(), "default-plain")
+	assert.NoError(t, err)
+	assert.Equal(t, 0, repo.createCount)
+
+	ok, err := svc.Verify(context.Background(), "already-here")
+	assert.NoError(t, err)
+	assert.True(t, ok)
 }
 
-func TestGenerate_CreateFails(t *testing.T) {
-	repo := &fakeRepo{createErr: errors.New("unable to create")}
-	rd := &fakeRedis{}
-	svc := NewKeyService(repo, rd, zerolog.Nop())
-	svc.Generate(context.TODO(), GenerateKeyCommand{})
+func TestBootstrap_PropagatesUnexpectedError(t *testing.T) {
+	repo := &fakeRepo{getActiveErr: errors.New("db on fire")}
+	svc := newTestSvc(t, repo)
 
-	// Potentially, add a transaction here
-	// assert.Equal(t, 0, repo.unprimeCall)
+	err := svc.Bootstrap(context.Background(), "default-plain")
+	assert.Error(t, err)
+}
 
-	assert.Equal(t, 1, repo.unprimeCall)
-	assert.Equal(t, 1, repo.createCall)
+func TestVerify_RejectsWrongKey(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newTestSvc(t, repo)
+	_ = svc.Bootstrap(context.Background(), "the-real-one")
+
+	ok, err := svc.Verify(context.Background(), "imposter")
+	assert.NoError(t, err)
+	assert.False(t, ok)
+}
+
+func TestGenerateThenSet_RotatesActive(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newTestSvc(t, repo)
+	_ = svc.Bootstrap(context.Background(), "old-key")
+
+	gen, err := svc.Generate(context.Background(), GenerateKeyCommand{Key: "new-primed"})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, gen.ID)
+	assert.Equal(t, 1, repo.unprimeCount)
+
+	ok, _ := svc.Verify(context.Background(), "new-primed")
+	assert.False(t, ok)
+
+	res, err := svc.Set(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, gen.ID, res.ID)
+	assert.Equal(t, "new-primed", res.Key)
+
+	ok, _ = svc.Verify(context.Background(), "new-primed")
+	assert.True(t, ok)
+	ok, _ = svc.Verify(context.Background(), "old-key")
+	assert.False(t, ok)
+}
+
+func TestSetByKey_BreakGlassActivatesPasted(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newTestSvc(t, repo)
+	_ = svc.Bootstrap(context.Background(), "before")
+
+	res, err := svc.SetByKey(context.Background(), "pasted-from-cli")
+	assert.NoError(t, err)
+	assert.Equal(t, "pasted-from-cli", res.Key)
+
+	ok, _ := svc.Verify(context.Background(), "pasted-from-cli")
+	assert.True(t, ok)
+	ok, _ = svc.Verify(context.Background(), "before")
+	assert.False(t, ok)
+}
+
+func TestSetByKey_RejectsEmpty(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newTestSvc(t, repo)
+
+	_, err := svc.SetByKey(context.Background(), "")
+	assert.Error(t, err)
 }

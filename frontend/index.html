@@ -18,55 +18,57 @@
     <main>
         <section class="flex sm:flex-row flex-col sm:gap-40 mt-10 text-4xl items-center justify-center">
             <section class="flex flex-col gap-3">
-                <textarea readonly id="api-key-input" class="code h-48 w-80 border text-center text-xl  " name="api-key"
-                    placeholder="API Key"></textarea>
-                <button id="generate-button" class="btn uppercase " type="submit"><span
-                        class="border-b-2 hover:border-b-7 transition-all duration-500 hover:border-black">Generate</span>
+                <textarea readonly id="api-key-input" class="code h-48 w-80 border text-center text-xl"
+                    name="api-key" placeholder="API Key"></textarea>
+                <label class="flex items-center gap-2 text-base normal-case justify-center select-none cursor-pointer">
+                    <input id="own-key-toggle" type="checkbox" class="h-4 w-4">
+                    <span class="text-gray-700">I have my own key</span>
+                </label>
+                <button id="generate-button" class="btn uppercase" type="submit"><span
+                        class="border-b-2 hover:border-b-7 transition-all duration-500 hover:border-black">Generate</span></button>
             </section>
             <div
                 class="hidden sm:block h-[250px] min-h-[1em] w-px self-stretch bg-gradient-to-tr from-transparent via-neutral-500 to-transparent opacity-25 dark:via-neutral-400">
             </div>
             <section class="flex flex-col gap-3 mt-10 sm:mt-0">
-                <input id="password" class="border text-md p-4 text-italic italic uppercase text-center" type="password"
+                <input id="password" class="border text-md p-4 italic uppercase text-center" type="password"
                     name="password" placeholder="Passcode">
-                <button id="set-button" class="btn  uppercase" type="submit"><span
+                <button id="set-button" class="btn uppercase" type="submit"><span
                         class="border-b-2 hover:border-b-7 transition-all duration-500 hover:border-black">set</span>
                 </button>
-
             </section>
         </section>
         <section class="text-center text-xl p-4 sm:text-3xl mt-20">
             <h1 class="text-4xl"> HOW TO? </h1>
-            <p class="text-2xl mt-8 uppercase "> 1. Generate API Key </p>
-            <div class=" text-lg  text-gray-600">Click generate to generate a new 32-character API key to be used as the
-                authorization token.<br>
-                Generating doesn't necessarily set the key, it just generates it.
+
+            <p class="text-2xl mt-8 uppercase ">Standard flow — Generate then Set</p>
+            <div class="text-lg text-gray-600">Click <em>Generate</em> to mint a fresh key — the server stores it as
+                <em>primed</em> and shows the plaintext above.<br>
+                Pass that plaintext to whoever needs to call <code>/api/v1/order</code> (the sender).<br>
+                Once they have it wired in, enter the admin passcode and click <em>Set</em> — the primed key becomes
+                the active key.
             </div>
 
-
-            <p class="text-2xl mt-8 uppercase "> 2. Enter the Passcode and set API Key </p>
-
-            <div class=" text-lg  text-gray-600">Enter the passcode to set the API key as the active token. <br>
-                Every request made to the server will now be authenticated with the API key. <br>
-                Setting the key also copies it to the clipboard.
+            <p class="text-2xl mt-8 uppercase ">Break-glass flow — Paste your own key</p>
+            <div class="text-lg text-gray-600">Tick <em>I have my own key</em> if you already hold the plaintext (e.g.
+                you typed it from a CLI elsewhere) and just need online/ to start accepting it.<br>
+                The textarea unlocks; paste the key, enter the admin passcode, and click <em>Set</em>.<br>
+                The pasted key is stored and activated directly — the previously-primed key (if any) is unprimed and
+                ignored.
             </div>
 
-            <p class="text-2xl mt-8 uppercase "> 3. Use the API Key to send requests </p>
-            <div class=" text-lg  text-gray-600">
-                Finally, store the API key in a safe place, as it is the only way to authenticate with the server.<br>
-                In case you lose the key or someone else steals it, you can generate a new one and set it as the active
-                token.<br>
-                Every future request made to the server will be authenticated with the new key.<br>
+            <p class="text-2xl mt-8 uppercase ">After setting</p>
+            <div class="text-lg text-gray-600">
+                Every <code>POST /api/v1/order</code> from now on must carry
+                <code>Authorization: Bearer &lt;active-key&gt;</code>.<br>
+                If a key is lost or compromised, repeat either flow above to rotate. The previous active key is
+                immediately deactivated; in-flight requests using it will start receiving 401.
             </div>
         </section>
     </main>
-
-
-
-
 </body>
-<script src="script.js"></script>
 
+<script src="script.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
 </html>

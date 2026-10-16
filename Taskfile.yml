@@ -1,64 +1,152 @@
 version: "3"
 
+# online/ Taskfile.
+#
+# Authentication:
+#   We don't run `doppler login` / `doppler setup`. Each task that needs
+#   Doppler reads the service token from {{.DOPPLER_TOKEN_FILE}} (the file
+#   contains *only* the raw token, nothing else) and prefixes it onto the
+#   `doppler run` invocation. The token is scoped to a single Doppler
+#   config, so Doppler infers project + config from it.
+#
+# {{.DOPPLER_TOKEN_FILE}} is gitignored. Tasks that don't need secrets
+# (build, vet, go test, scp deploys) skip the env var entirely.
+
 vars:
-  DEV_COFIG: ./docker/docker-compose.dev.yml
+  DOPPLER_TOKEN_FILE: .doppler-dev-online
+  DEV_CONFIG: ./docker/docker-compose.dev.yml
   PROD_CONFIG: ./docker/docker-compose.prod.yml
-  ENV_FILE: .env
 
 tasks:
   default:
-    desc: Print a greeting message
+    desc: List tasks
     cmds:
-      - echo "{{.GREETING}}"
-    silent: true
+      - "{{.TASK_EXE}} --list"
+
+  # ---- Dev stack (docker compose) ---------------------------------------
 
   devup:
-    desc: Start the development environment
+    desc: Start the dev stack (foreground)
     cmds:
-      - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} up
-
-  devdown:
-    desc: Stop the development environment
-    cmds:
-      - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} down
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} up
 
   devupd:
-    desc: Start the development environment in detached mode
+    desc: Start the dev stack (detached)
     cmds:
-      - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} up -d
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} up -d
+
+  devdown:
+    desc: Stop the dev stack
+    cmds:
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} down
 
   devrestart:
-    desc: Restart the development environment
+    desc: Restart the dev stack
     cmds:
-      - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} down
-      - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} up
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} down
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} up
 
   devreset:
-    desc: Reset the development environment
+    desc: Reset the dev stack (drops images and rebuilds)
     cmds:
-      - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} down
-      - docker compose -f {{.DEV_COFIG}} down --rmi all
-      - docker compose -f {{.DEV_COFIG}} --env-file {{.ENV_FILE}} up --build
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} down
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} down --rmi all
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} up --build
 
-  gen-env:
-    desc: Generate .env file
+  dev-del-volumes:
+    desc: Drop the dev sqlite volume (wipes the api_keys table)
     cmds:
-      - touch {{.ENV_FILE}}
-      - echo "APP_ENV=development" >> {{.ENV_FILE}}
-      - echo "LOG_LEVEL=info" >> {{.ENV_FILE}}
-      - echo "LOG_OUTPUT=standard" >> {{.ENV_FILE}}
-      - echo "LOG_STYLE=json" >> {{.ENV_FILE}}
-      - echo "SERVER_PORT=1323" >> {{.ENV_FILE}}
-      - echo "REDIS_PORT=6379" >> {{.ENV_FILE}}
-      - echo "REDIS_PASS=testing" >> {{.ENV_FILE}}
-      - echo "QUEUE_NAME=default" >> {{.ENV_FILE}}
-      - echo "# ARGON2ID == version=19, memory=64000, time=3, parallelism=2, salt=lombardis" >> {{.ENV_FILE}}
-  transport-env:
-    desc: Send the .env file to production
-    cmds: 
-      - scp {{.ENV_FILE}} lightsail-api:~
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} down -v
+
+  dev-config:
+    desc: Print the resolved docker-compose config
+    cmds:
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} config
+
+  dev-logs:
+    desc: "Tail logs for a service: task dev-logs -- api"
+    cmds:
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} logs -f {{.CLI_ARGS}}
+
+  # ---- Build & Go-side checks (no secrets needed) -----------------------
+
+  build:
+    desc: Build the backend binary to backend/tmp/main
+    dir: ./backend
+    cmds:
+      - mkdir -p tmp
+      - go build -o ./tmp/main ./cmd/server
+
+  vet:
+    desc: Run go vet on the backend
+    dir: ./backend
+    cmds:
+      - go vet ./...
+
+  test-go:
+    desc: Run Go unit tests for online/backend
+    dir: ./backend
+    cmds:
+      - go test ./...
+
+  # ---- Python integration suite ----------------------------------------
+
+  test:
+    desc: "Run online/tests pytest suite (dev stack must be up)"
+    cmds:
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- uv run --directory tests pytest -v
+
+  test-quick:
+    desc: "Run only the fast subset of online/ tests"
+    cmds:
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- uv run --directory tests pytest -v -m "not slow"
+
+  test-script:
+    desc: "Run the legacy interactive harness (test.py)"
+    cmds:
+      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- uv run --directory tests python test.py
+
+  # ---- Deploy helpers ---------------------------------------------------
 
   transport-compose:
-    desc: Send the docker-compose file to production
-    cmds: 
+    desc: Send the prod docker-compose to the Lightsail box
+    cmds:
       - scp {{.PROD_CONFIG}} lightsail-api:/opt/ingest/docker-compose.yml
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Versioning — see ../scripts/version.sh
+  # ──────────────────────────────────────────────────────────────────────
+
+  version-current:
+    desc: Show the current version (./VERSION)
+    silent: true
+    cmds:
+      - ../scripts/version.sh current
+
+  version-describe:
+    desc: VERSION + git describe diagnostics
+    silent: true
+    cmds:
+      - ../scripts/version.sh describe
+
+  version-init:
+    desc: "Create initial v0.1.0 (or override): task version-init -- 0.2.0"
+    cmds:
+      - ../scripts/version.sh init {{.CLI_ARGS}}
+
+  version-bump:
+    desc: "Bump and tag: task version-bump -- patch|minor|major"
+    cmds:
+      - ../scripts/version.sh bump {{.CLI_ARGS}}
+
+  version-tag:
+    desc: "(Re-)tag the current VERSION without bumping. Pass -f to overwrite."
+    cmds:
+      - ../scripts/version.sh tag {{.CLI_ARGS}}
+
+  release:
+    desc: "Bump (default patch) and push tag — CI builds + SSH-deploys to Lightsail. task release -- minor"
+    cmds:
+      - ../scripts/version.sh bump {{- if .CLI_ARGS }} {{.CLI_ARGS}}{{- else }} patch{{- end }}
+      - git push origin HEAD
+      - git push origin --tags

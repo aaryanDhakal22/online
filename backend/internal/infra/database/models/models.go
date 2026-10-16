@@ -9,10 +9,3 @@ type ApiKey struct {
 	Key    string `json:"key"`
 	Status string `json:"status"`
 }
-
-type Order struct {
-	ID          string `json:"id"`
-	Payload     string `json:"payload"`
-	DateCreated string `json:"date_created"`
-	CreatedAt   string `json:"created_at"`
-}

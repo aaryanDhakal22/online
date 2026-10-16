@@ -4,89 +4,58 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
-
-	"quicc/online/internal/domain/order"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+
+	"quicc/online/internal/observability"
 )
-
-type fakeRepo struct {
-	createErr  error
-	getByIDErr error
-	deleteErr  error
-
-	createCall  int
-	getByIDCall int
-	deleteCall  int
-}
-
-func (f *fakeRepo) Create(ctx context.Context, order *order.Order) error {
-	f.createCall++
-	return f.createErr
-}
-
-func (f *fakeRepo) GetByID(ctx context.Context, id string) (*order.Order, error) {
-	f.getByIDCall++
-	return nil, f.getByIDErr
-}
-
-func (f *fakeRepo) Delete(ctx context.Context, id string) error {
-	f.deleteCall++
-	return f.deleteErr
-}
-
-func (f *fakeRepo) GetLatest(ctx context.Context) (*order.Order, error) {
-	return nil, nil
-}
 
 type fakePublisher struct {
 	publishErr  error
 	publishCall int
+	lastID      string
+	lastBody    []byte
 }
 
-func (f *fakePublisher) Publish(orderID string, order order.Order) error {
+func (f *fakePublisher) Publish(ctx context.Context, orderID string, body []byte) error {
 	f.publishCall++
+	f.lastID = orderID
+	f.lastBody = body
 	return f.publishErr
 }
 
-func TestCreate(t *testing.T) {
-	repo := &fakeRepo{}
-	mb := &fakePublisher{}
+func newSvc(t *testing.T, pub *fakePublisher) *OrderService {
+	t.Helper()
 	logger := zerolog.New(zerolog.NewTestWriter(t)).Level(zerolog.DebugLevel)
-	service := NewOrderService(repo, mb, logger)
-
-	repo.createErr = errors.New("error")
-	_, err := service.Create(CreateOrderCommand{
-		OrderID:     "1",
-		Payload:     "{}",
-		DateCreated: time.Now().String(),
-		CreatedAt:   time.Now().String(),
-	})
-	assert.Error(t, err)
-	assert.Equal(t, 1, repo.createCall)
-	assert.Equal(t, 0, mb.publishCall)
-
-	repo.createErr = nil
-	_, err = service.Create(CreateOrderCommand{
-		OrderID:     "1",
-		Payload:     "{}",
-		DateCreated: time.Now().String(),
-		CreatedAt:   time.Now().String(),
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, 1, repo.createCall)
-	assert.Equal(t, 1, mb.publishCall)
+	meters, err := observability.NewMeters()
+	if err != nil {
+		t.Fatalf("NewMeters: %v", err)
+	}
+	return NewOrderService(pub, logger, meters)
 }
 
-func TestRelayOrder(t *testing.T) {
-	repo := &fakeRepo{}
-	mb := &fakePublisher{}
-	logger := zerolog.New(zerolog.NewTestWriter(t)).Level(zerolog.DebugLevel)
-	service := NewOrderService(repo, mb, logger)
+func TestRelay_Success(t *testing.T) {
+	pub := &fakePublisher{}
+	svc := newSvc(t, pub)
 
-	err := service.RelayOrder(RelayOrderCommand{OrderID: "1", Order: order.Order{ID: "1"}})
+	body := []byte(`{"order":1}`)
+	res, err := svc.Relay(context.Background(), RelayOrderCommand{OrderID: "abc", Body: body})
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, pub.publishCall)
+	assert.Equal(t, "abc", pub.lastID)
+	assert.Equal(t, body, pub.lastBody)
+	assert.Equal(t, "relayed", res.Status)
+	assert.Equal(t, len(body), res.BodyBytes)
+}
+
+func TestRelay_PublishError(t *testing.T) {
+	pub := &fakePublisher{publishErr: errors.New("sqs down")}
+	svc := newSvc(t, pub)
+
+	_, err := svc.Relay(context.Background(), RelayOrderCommand{OrderID: "abc", Body: []byte("x")})
+
 	assert.Error(t, err)
-	assert.Equal(t, 1, mb.publishCall)
+	assert.Equal(t, 1, pub.publishCall)
 }

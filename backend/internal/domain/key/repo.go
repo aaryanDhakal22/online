@@ -1,8 +1,6 @@
 package keys
 
-import (
-	"context"
-)
+import "context"
 
 type Repository interface {
 	Create(ctx context.Context, key *APIKey) error
@@ -12,5 +10,4 @@ type Repository interface {
 	Activate(ctx context.Context, id string) error
 	DeactivateAllKeys(ctx context.Context) error
 	UnprimeAll(ctx context.Context) error
-	Delete(ctx context.Context, id string) error
 }

@@ -1,6 +1,6 @@
 ########## BASE IMAGE ##########
 # Setup the base image for dependencies
-FROM golang:1.25.6-bookworm AS builder
+FROM golang:1.26.1-bookworm AS builder
 
 # Set the working directory
 WORKDIR /src
@@ -31,11 +31,15 @@ COPY . .
 
 ARG MAIN=./cmd/server
 ARG BIN=app
+# VERSION + COMMIT are injected by CI from VERSION + the git sha so the
+# running binary can report what it is at /api/v1/version.
+ARG VERSION=dev
+ARG COMMIT=unknown
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     go build -trimpath \
-    -ldflags="-w -s" \
+    -ldflags="-w -s -X main.version=${VERSION} -X main.commit=${COMMIT}" \
     -o /out/${BIN} \
     ${MAIN}
 

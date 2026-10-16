@@ -1,12 +1,16 @@
 [project]
-name = "tests"
+name = "online-tests"
 version = "0.1.0"
-description = "Add your description here"
+description = "Integration tests for the online/ POS relay"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "black>=26.1.0",
-    "dotenv>=0.9.9",
     "loguru>=0.7.3",
+    "pytest>=8.3.4",
     "requests>=2.32.5",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: tests that take longer (bulk send, repeated rotations)",
 ]

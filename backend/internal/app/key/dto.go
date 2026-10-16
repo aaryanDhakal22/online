@@ -10,31 +10,10 @@ type SetKeyResult struct {
 	Key string `json:"key,omitempty"`
 }
 
-// Result
-type GetActiveKeyResult struct {
-	ID  string `json:"id,omitempty"`
-	Key string `json:"key,omitempty"`
-}
-type GetPrimedKeyResult struct {
-	ID  string `json:"id,omitempty"`
-	Key string `json:"key,omitempty"`
-}
-type GetKeyByIDResult struct {
-	ID  string `json:"id,omitempty"`
-	Key string `json:"key,omitempty"`
-}
-type ActivateKeyResult struct {
-	ID string `json:"id,omitempty"`
-}
-type DeactivateKeyResult struct {
-	ID string `json:"id,omitempty"`
-}
-type VerifyKeyResult struct {
-	Match bool `json:"match"`
-}
 type GetKeyResult struct {
 	Key string `json:"key"`
 }
-type RetrieveKeyResult struct {
-	Key string `json:"key"`
+
+type VerifyKeyResult struct {
+	Match bool `json:"match"`
 }

@@ -15,10 +15,9 @@ type KeyRepository struct {
 }
 
 func NewKeyRepository(db *models.Queries, logger zerolog.Logger) *KeyRepository {
-	dbLogger := logger.With().Str("component", "repository").Logger()
 	return &KeyRepository{
 		db:     db,
-		logger: dbLogger,
+		logger: logger.With().Str("component", "key_repo").Logger(),
 	}
 }
 
@@ -62,13 +61,8 @@ func (r *KeyRepository) DeactivateAllKeys(ctx context.Context) error {
 	return r.db.DeactivateKey(ctx)
 }
 
-// Unprime the previous key
 func (r *KeyRepository) UnprimeAll(ctx context.Context) error {
 	return r.db.UnprimeAll(ctx)
-}
-
-func (r *KeyRepository) Delete(ctx context.Context, id string) error {
-	return r.db.DeleteKey(ctx, id)
 }
 
 func toKeyDomain(key models.ApiKey) *keys.APIKey {

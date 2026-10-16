@@ -30,17 +30,8 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createKeyStmt, err = db.PrepareContext(ctx, createKey); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateKey: %w", err)
 	}
-	if q.createOrderStmt, err = db.PrepareContext(ctx, createOrder); err != nil {
-		return nil, fmt.Errorf("error preparing query CreateOrder: %w", err)
-	}
 	if q.deactivateKeyStmt, err = db.PrepareContext(ctx, deactivateKey); err != nil {
 		return nil, fmt.Errorf("error preparing query DeactivateKey: %w", err)
-	}
-	if q.deleteKeyStmt, err = db.PrepareContext(ctx, deleteKey); err != nil {
-		return nil, fmt.Errorf("error preparing query DeleteKey: %w", err)
-	}
-	if q.deleteOrderStmt, err = db.PrepareContext(ctx, deleteOrder); err != nil {
-		return nil, fmt.Errorf("error preparing query DeleteOrder: %w", err)
 	}
 	if q.getActiveKeyStmt, err = db.PrepareContext(ctx, getActiveKey); err != nil {
 		return nil, fmt.Errorf("error preparing query GetActiveKey: %w", err)
@@ -48,20 +39,8 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getKeyByIDStmt, err = db.PrepareContext(ctx, getKeyByID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetKeyByID: %w", err)
 	}
-	if q.getLatestOrderStmt, err = db.PrepareContext(ctx, getLatestOrder); err != nil {
-		return nil, fmt.Errorf("error preparing query GetLatestOrder: %w", err)
-	}
-	if q.getOrderByIDStmt, err = db.PrepareContext(ctx, getOrderByID); err != nil {
-		return nil, fmt.Errorf("error preparing query GetOrderByID: %w", err)
-	}
-	if q.getOrdersStmt, err = db.PrepareContext(ctx, getOrders); err != nil {
-		return nil, fmt.Errorf("error preparing query GetOrders: %w", err)
-	}
 	if q.getPrimedKeyStmt, err = db.PrepareContext(ctx, getPrimedKey); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPrimedKey: %w", err)
-	}
-	if q.getTodaysOrdersStmt, err = db.PrepareContext(ctx, getTodaysOrders); err != nil {
-		return nil, fmt.Errorf("error preparing query GetTodaysOrders: %w", err)
 	}
 	if q.unprimeAllStmt, err = db.PrepareContext(ctx, unprimeAll); err != nil {
 		return nil, fmt.Errorf("error preparing query UnprimeAll: %w", err)
@@ -81,24 +60,9 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createKeyStmt: %w", cerr)
 		}
 	}
-	if q.createOrderStmt != nil {
-		if cerr := q.createOrderStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing createOrderStmt: %w", cerr)
-		}
-	}
 	if q.deactivateKeyStmt != nil {
 		if cerr := q.deactivateKeyStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deactivateKeyStmt: %w", cerr)
-		}
-	}
-	if q.deleteKeyStmt != nil {
-		if cerr := q.deleteKeyStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing deleteKeyStmt: %w", cerr)
-		}
-	}
-	if q.deleteOrderStmt != nil {
-		if cerr := q.deleteOrderStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing deleteOrderStmt: %w", cerr)
 		}
 	}
 	if q.getActiveKeyStmt != nil {
@@ -111,29 +75,9 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getKeyByIDStmt: %w", cerr)
 		}
 	}
-	if q.getLatestOrderStmt != nil {
-		if cerr := q.getLatestOrderStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getLatestOrderStmt: %w", cerr)
-		}
-	}
-	if q.getOrderByIDStmt != nil {
-		if cerr := q.getOrderByIDStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getOrderByIDStmt: %w", cerr)
-		}
-	}
-	if q.getOrdersStmt != nil {
-		if cerr := q.getOrdersStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getOrdersStmt: %w", cerr)
-		}
-	}
 	if q.getPrimedKeyStmt != nil {
 		if cerr := q.getPrimedKeyStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getPrimedKeyStmt: %w", cerr)
-		}
-	}
-	if q.getTodaysOrdersStmt != nil {
-		if cerr := q.getTodaysOrdersStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getTodaysOrdersStmt: %w", cerr)
 		}
 	}
 	if q.unprimeAllStmt != nil {
@@ -178,41 +122,27 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 }
 
 type Queries struct {
-	db                  DBTX
-	tx                  *sql.Tx
-	activateKeyStmt     *sql.Stmt
-	createKeyStmt       *sql.Stmt
-	createOrderStmt     *sql.Stmt
-	deactivateKeyStmt   *sql.Stmt
-	deleteKeyStmt       *sql.Stmt
-	deleteOrderStmt     *sql.Stmt
-	getActiveKeyStmt    *sql.Stmt
-	getKeyByIDStmt      *sql.Stmt
-	getLatestOrderStmt  *sql.Stmt
-	getOrderByIDStmt    *sql.Stmt
-	getOrdersStmt       *sql.Stmt
-	getPrimedKeyStmt    *sql.Stmt
-	getTodaysOrdersStmt *sql.Stmt
-	unprimeAllStmt      *sql.Stmt
+	db                DBTX
+	tx                *sql.Tx
+	activateKeyStmt   *sql.Stmt
+	createKeyStmt     *sql.Stmt
+	deactivateKeyStmt *sql.Stmt
+	getActiveKeyStmt  *sql.Stmt
+	getKeyByIDStmt    *sql.Stmt
+	getPrimedKeyStmt  *sql.Stmt
+	unprimeAllStmt    *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db:                  tx,
-		tx:                  tx,
-		activateKeyStmt:     q.activateKeyStmt,
-		createKeyStmt:       q.createKeyStmt,
-		createOrderStmt:     q.createOrderStmt,
-		deactivateKeyStmt:   q.deactivateKeyStmt,
-		deleteKeyStmt:       q.deleteKeyStmt,
-		deleteOrderStmt:     q.deleteOrderStmt,
-		getActiveKeyStmt:    q.getActiveKeyStmt,
-		getKeyByIDStmt:      q.getKeyByIDStmt,
-		getLatestOrderStmt:  q.getLatestOrderStmt,
-		getOrderByIDStmt:    q.getOrderByIDStmt,
-		getOrdersStmt:       q.getOrdersStmt,
-		getPrimedKeyStmt:    q.getPrimedKeyStmt,
-		getTodaysOrdersStmt: q.getTodaysOrdersStmt,
-		unprimeAllStmt:      q.unprimeAllStmt,
+		db:                tx,
+		tx:                tx,
+		activateKeyStmt:   q.activateKeyStmt,
+		createKeyStmt:     q.createKeyStmt,
+		deactivateKeyStmt: q.deactivateKeyStmt,
+		getActiveKeyStmt:  q.getActiveKeyStmt,
+		getKeyByIDStmt:    q.getKeyByIDStmt,
+		getPrimedKeyStmt:  q.getPrimedKeyStmt,
+		unprimeAllStmt:    q.unprimeAllStmt,
 	}
 }

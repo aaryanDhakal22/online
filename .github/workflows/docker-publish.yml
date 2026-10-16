@@ -1,94 +1,258 @@
-name: Build and publish (GHCR)
+name: Verify, build & push (GHCR)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CI for online/.
+#
+# Jobs:
+#   1. verify           — go vet + go test + pytest. Blocks every build.
+#   2. build-staging    — every branch push. Tags (floating ones move):
+#                           staging → staging-latest (floating), staging-<sha7>
+#                           master  → prod-latest (floating),    prod-<sha7>
+#                           other   → branch-<slug>
+#   3. build-production — semver tag push only (v1.2.3). Tags:
+#                           1.2.3, prod-v1.2.3 (immutable)
+#
+# NOTE: `master` still holds v1 until the cutover, and v1's own workflow on
+# master SSH-deploys prod. Push v2 to `staging` only (../CUTOVER.md).
+#
+# CI builds + pushes images to GHCR ONLY — it does NOT deploy or SSH anywhere
+# (no LIGHTSAIL_*/SSH secrets). Rolling a built image out to a host is manual
+# (planned: orchestrated from the console).
+# ─────────────────────────────────────────────────────────────────────────────
 
 on:
   push:
-    branches: [master]
+    branches: ["**"]
+    tags: ["v*"]
   workflow_dispatch: {}
 
-permissions:
-  contents: read
-  packages: write
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE: ghcr.io/${{ github.repository_owner }}/online-api
+  NGINX_IMAGE: ghcr.io/${{ github.repository_owner }}/online-nginx
 
 jobs:
-  build-and-push:
+  # ───────────────────────────────────────────────────────────────────────────
+  # 1. Verify — Go-side checks plus the pytest suite booted under compose.
+  #    Env vars in the compose-up step are intentionally inline (not
+  #    secrets): they're CI test values pointing at a local ElasticMQ.
+  #    Real prod values live in Doppler and never enter this workflow.
+  # ───────────────────────────────────────────────────────────────────────────
+  verify:
+    name: Verify (go test + pytest)
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: go vet
+        working-directory: ./backend
+        run: go vet ./...
+
+      - name: go test
+        working-directory: ./backend
+        run: go test ./...
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        run: pip install --upgrade uv
+
+      - name: Bring up the dev stack
+        env:
+          APP_ENV: dev
+          DOMAIN: localhost
+          LOG_LEVEL: info
+          LOG_STYLE: console
+          SERVER_PORT: "1323"
+          RATE_LIMIT_PER_SEC: "0"
+          DB_PATH: /data/app.db
+          SQS_QUEUE_URL: http://elasticmq:9324/000000000000/dev-ingest
+          SQS_ENDPOINT: http://elasticmq:9324
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_REGION: us-east-1
+          DEFAULT_API_KEY: ci-test-key
+          # argon2id hash of the literal string "ci-pass". Re-derivable; the
+          # plaintext is also literally "ci-pass" — see the pytest step below.
+          ADMIN_PASS_HASH: '$argon2id$v=19$m=65536,t=1,p=8$qhAOqMLJoqw56/nQxq9A/g$V0qiwavNMjflt7LSPF/AqQb6+DHhOTuajEmM9D5ByAY'
+        run: |
+          docker compose -f docker/docker-compose.dev.yml up -d --wait
+
+      - name: Wait for /health
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:1323/health >/dev/null; then
+              echo "api is up"
+              exit 0
+            fi
+            echo "waiting for api… ($i/30)"
+            sleep 2
+          done
+          echo "api did not come up in 60s"
+          docker compose -f docker/docker-compose.dev.yml logs api
+          exit 1
+
+      - name: Run pytest
+        env:
+          APP_ENV: dev
+          DEV_URL: http://localhost
+          DEV_BACKEND_PORT: "1323"
+          ADMIN_PASSCODE: ci-pass
+        run: |
+          uv run --directory tests pytest -v
+
+      - name: Tear down the dev stack
+        if: always()
+        run: |
+          docker compose -f docker/docker-compose.dev.yml down -v
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 2. Staging — runs on every branch push (not on tags).
+  # ───────────────────────────────────────────────────────────────────────────
+  build-staging:
+    name: Build staging image (${{ matrix.name }})
+    needs: verify
+    if: github.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     strategy:
+      fail-fast: false
       matrix:
         include:
           - name: api
             context: ./backend
             file: ./backend/Dockerfile
-            image: ghcr.io/aaryandhakal22/online-api
+            image: ghcr.io/${{ github.repository_owner }}/online-api
             target: runtime
-
           - name: proxy
             context: .
             file: ./nginx/Dockerfile
-            image: ghcr.io/aaryandhakal22/online-nginx
+            image: ghcr.io/${{ github.repository_owner }}/online-nginx
+            target: ""
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
 
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3.10.0
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3.4.0
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
-        uses: docker/build-push-action@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compute staging tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ matrix.image }}
+          tags: |
+            type=raw,value=staging-latest,enable=${{ github.ref == 'refs/heads/staging' }}
+            type=sha,prefix=staging-,format=short,enable=${{ github.ref == 'refs/heads/staging' }}
+            type=raw,value=prod-latest,enable=${{ github.ref == 'refs/heads/master' }}
+            type=sha,prefix=prod-,format=short,enable=${{ github.ref == 'refs/heads/master' }}
+            type=ref,event=branch,prefix=branch-,enable=${{ github.ref != 'refs/heads/staging' && github.ref != 'refs/heads/master' }}
+
+      - name: Build and push staging image
+        uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
-          push: true
           target: ${{ matrix.target }}
-          tags: |
-            ${{ matrix.image }}:latest
-            ${{ matrix.image }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-  deploy:
-    needs: build-and-push
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=staging-${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=staging-${{ matrix.name }}
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 3. Production — semver tag push only. Same matrix as staging.
+  # ───────────────────────────────────────────────────────────────────────────
+  build-production:
+    name: Build production image (${{ matrix.name }})
+    needs: verify
+    if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            context: ./backend
+            file: ./backend/Dockerfile
+            image: ghcr.io/${{ github.repository_owner }}/online-api
+            target: runtime
+          - name: proxy
+            context: .
+            file: ./nginx/Dockerfile
+            image: ghcr.io/${{ github.repository_owner }}/online-nginx
+            target: ""
     steps:
-      - name: Install SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Add server to known_hosts
-        run: |
-          ssh-keyscan -H "${{ secrets.LIGHTSAIL_HOST }}" >> ~/.ssh/known_hosts
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy on Lightsail
-        env:
-          HOST: ${{ secrets.LIGHTSAIL_HOST }}
-          USER: ${{ secrets.LIGHTSAIL_USER }}
-          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-        run: |
-          ssh ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} << 'EOF'
-            set -euo pipefail
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-            cd /opt/ingest/
+      - name: Compute production tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ matrix.image }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern=prod-v{{version}}
 
-            # Login to GHCR for private pulls
+      - name: Read VERSION (from tag)
+        id: version
+        run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+      - name: Build and push production image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.version.outputs.value }}
+            COMMIT=${{ github.sha }}
+          cache-from: type=gha,scope=prod-${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=prod-${{ matrix.name }}
 
-            # Pull and restart using prod compose
-            
-            docker compose pull
-            docker compose up -d
-
-            # Cleanup old layers
-            docker image prune -f
-
-            # Optional: show status
-            docker compose ps
-          EOF
+  # ───────────────────────────────────────────────────────────────────────────
+  # Deploy is intentionally NOT part of CI.
+  #
+  # The former `deploy` job (SSH → Lightsail, `docker compose pull && up -d` on a
+  # v* tag) was removed 2026-07-11. CI now ONLY builds + pushes images to GHCR —
+  # it never touches a host, uses no LIGHTSAIL_* / SSH secrets, and cannot affect
+  # prod. Rolling a built image out to a host is done manually (planned:
+  # orchestrated from the console). Re-introducing any host access here should be
+  # a deliberate, reviewed change.
+  # ───────────────────────────────────────────────────────────────────────────

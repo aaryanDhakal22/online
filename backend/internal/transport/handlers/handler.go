@@ -3,7 +3,7 @@ package handler
 import (
 	keyApp "quicc/online/internal/app/key"
 	orderApp "quicc/online/internal/app/order"
-	"quicc/online/internal/infra/notify"
+	"quicc/online/internal/observability"
 
 	"github.com/rs/zerolog"
 )
@@ -11,16 +11,15 @@ import (
 type Handler struct {
 	keySvc   *keyApp.KeyService
 	orderSvc *orderApp.OrderService
-	notifier *notify.Notifier
+	meters   observability.Meters
 	log      zerolog.Logger
 }
 
-func NewHandler(keySvc *keyApp.KeyService, orderSvc *orderApp.OrderService, notifier *notify.Notifier, logger zerolog.Logger) *Handler {
-	log := logger.With().Str("module", "handler").Logger()
+func NewHandler(keySvc *keyApp.KeyService, orderSvc *orderApp.OrderService, meters observability.Meters, logger zerolog.Logger) *Handler {
 	return &Handler{
 		keySvc:   keySvc,
 		orderSvc: orderSvc,
-		notifier: notifier,
-		log:      log,
+		meters:   meters,
+		log:      logger.With().Str("module", "handler").Logger(),
 	}
 }

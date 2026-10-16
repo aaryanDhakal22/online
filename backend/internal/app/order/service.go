@@ -3,73 +3,80 @@ package orderApp
 import (
 	"context"
 	"fmt"
-	"quicc/online/internal/domain/order"
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
+
+	"quicc/online/internal/observability"
 )
 
+const tracerName = "quiccpos/online/order"
+
+// EventPublisher is the seam between this service and the SQS broker. The
+// body is forwarded verbatim — no marshalling, no inspection.
 type EventPublisher interface {
-	Publish(OrderID string, order order.Order) error
+	Publish(ctx context.Context, orderID string, body []byte) error
 }
 
 type OrderService struct {
-	orderRepo order.Repository
-	mb        EventPublisher
-	logger    zerolog.Logger
+	mb     EventPublisher
+	logger zerolog.Logger
+	meters observability.Meters
+	tracer trace.Tracer
 }
 
-func NewOrderService(orderRepo order.Repository, mb EventPublisher, logger zerolog.Logger) *OrderService {
-	logger = logger.With().Str("service", "order").Logger()
+func NewOrderService(mb EventPublisher, logger zerolog.Logger, meters observability.Meters) *OrderService {
 	return &OrderService{
-		orderRepo: orderRepo,
-		mb:        mb,
-		logger:    logger,
+		mb:     mb,
+		logger: logger.With().Str("service", "order").Logger(),
+		meters: meters,
+		tracer: otel.Tracer(tracerName),
 	}
 }
 
-func (s *OrderService) Create(cmd CreateOrderCommand) (*CreateOrderResult, error) {
-	s.logger.Info().Msg("Creating order")
-	order := order.NewOrder(cmd.OrderID, cmd.Payload, cmd.DateCreated, cmd.CreatedAt)
-	err := s.orderRepo.Create(context.TODO(), order)
-	if err != nil {
-		s.logger.Error().Err(err).Msg("Error creating order")
+// Relay forwards the opaque body to SQS and records the outcome via metrics
+// + a child span (so Tempo shows handler → relay → SQS as a chain).
+func (s *OrderService) Relay(ctx context.Context, cmd RelayOrderCommand) (*RelayOrderResult, error) {
+	ctx, span := s.tracer.Start(ctx, "order.relay",
+		trace.WithAttributes(
+			attribute.String("order.id", cmd.OrderID),
+			attribute.Int("order.body.bytes", len(cmd.Body)),
+		),
+	)
+	defer span.End()
+
+	start := time.Now()
+
+	s.meters.OrdersReceived.Add(ctx, 1)
+	s.meters.BodyBytes.Record(ctx, int64(len(cmd.Body)))
+
+	s.logger.Debug().Ctx(ctx).Str("order_id", cmd.OrderID).Int("body_bytes", len(cmd.Body)).
+		Msg("relay: publish starting")
+
+	if err := s.mb.Publish(ctx, cmd.OrderID, cmd.Body); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "publish failed")
+		s.meters.OrdersRejected.Add(ctx, 1, metric.WithAttributes(attribute.String("reason", "sqs_error")))
+		s.logger.Error().Err(err).Ctx(ctx).Str("order_id", cmd.OrderID).Msg("relay: publish failed")
 		return nil, err
 	}
-	s.logger.Info().Msg("Order was successfully created.")
-	return &CreateOrderResult{
-		Status:          "ordered",
-		ExtOrderID:      fmt.Sprintf("brygid-%v", order.ID),
-		OrderPlacedTime: time.Now().Format(time.RFC3339),
+
+	latency := float64(time.Since(start).Milliseconds())
+	s.meters.OrdersRelayed.Add(ctx, 1)
+	s.meters.OrderRelayLatency.Record(ctx, latency)
+	span.SetAttributes(attribute.Float64("order.relay.latency_ms", latency))
+
+	s.logger.Info().Ctx(ctx).Str("order_id", cmd.OrderID).Int("body_bytes", len(cmd.Body)).
+		Float64("latency_ms", latency).Msg("relay: order relayed")
+
+	return &RelayOrderResult{
+		Status:     "relayed",
+		ExtOrderID: fmt.Sprintf("brygid-%s", cmd.OrderID),
+		BodyBytes:  len(cmd.Body),
 	}, nil
-}
-
-func (s *OrderService) RelayOrder(cmd RelayOrderCommand) error {
-	s.logger.Info().Msg("Relaying order")
-	// TODO: Implement sending to secondary server
-	if err := s.mb.Publish(cmd.OrderID, cmd.Order); err != nil {
-		s.logger.Error().Err(err).Msg("Error publishing order")
-		return err
-	}
-	s.logger.Info().Msg("Order was successfully published.")
-	return nil
-}
-
-func (s *OrderService) ReprintLatestOrder(cmd ReprintLatestOrderCommand) error {
-	s.logger.Info().Msg("Reprinting latest order")
-	s.logger.Debug().Msg("Getting latest order")
-	order, err := s.orderRepo.GetLatest(context.TODO())
-	if err != nil {
-		s.logger.Error().Err(err).Msg("Error getting latest order")
-		return err
-	}
-
-	s.logger.Debug().Msg("Publishing order")
-	err = s.mb.Publish(order.ID, *order)
-	if err != nil {
-		s.logger.Error().Err(err).Msg("Error publishing order")
-		return err
-	}
-	s.logger.Debug().Msg("Order was successfully published.")
-	return nil
 }

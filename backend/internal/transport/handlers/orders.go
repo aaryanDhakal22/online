@@ -1,131 +1,65 @@
 package handler
 
 import (
-	"encoding/json"
-	"fmt"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"net/http"
-	"quicc/online/internal/domain/order"
-	"strconv"
-	"time"
 
 	orderApp "quicc/online/internal/app/order"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 )
 
-func (h *Handler) CreateOrder(c echo.Context) error {
-	h.log.Info().Msg("Order request received")
+// CreateOrder reads the inbound POST body verbatim, hashes it for an order
+// ID + dedup key, attaches the digest and size to the active span, and
+// hands the bytes to the order service for relay. It never unmarshalls the
+// body, never inspects fields, never logs the body. PII stays opaque.
+func (h *Handler) CreateOrder(c *echo.Context) error {
+	ctx := c.Request().Context()
+	span := trace.SpanFromContext(ctx)
 
-	raw_payload, err := io.ReadAll(c.Request().Body)
+	h.log.Debug().Ctx(ctx).Msg("order: reading request body")
+	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
-		h.log.Error().Err(err).Msg("Unable to read request body")
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request", "message": "Unable to bind data, please check the order body"})
+		span.RecordError(err)
+		h.meters.OrdersRejected.Add(ctx, 1, metric.WithAttributes(attribute.String("reason", "read_error")))
+		h.log.Warn().Err(err).Ctx(ctx).Msg("order: failed to read body")
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "could not read request body"})
+	}
+	if len(body) == 0 {
+		h.meters.OrdersRejected.Add(ctx, 1, metric.WithAttributes(attribute.String("reason", "empty_body")))
+		h.log.Warn().Ctx(ctx).Msg("order: empty body rejected")
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "empty request body"})
 	}
 
-	// Parse into a struct
-	var newOrder orderApp.OrderRequest
-	err = json.Unmarshal(raw_payload, &newOrder)
-	if err != nil {
-		h.log.Error().Err(err).Msg("Unable to unmarshal request body")
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request", "message": "Unable to bind data, please check the order body"})
-	}
-	h.log.Debug().Msg("Order request bound")
+	sum := sha256.Sum256(body)
+	orderID := hex.EncodeToString(sum[:])
 
-	// Parse the submitted date
-	dateParsed, err := parseSubmittedDate(newOrder.SubmittedDate)
-	if err != nil {
-		h.log.Error().Err(err).Msg("Error parsing order submission date")
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request", "message": "Unable to parse order submission date"})
-	}
-	h.log.Debug().Str("submitted_date", newOrder.SubmittedDate).Msg("Submitted date")
+	span.SetAttributes(
+		attribute.String("order.id", orderID),
+		attribute.Int("order.body.bytes", len(body)),
+	)
+	h.log.Debug().Ctx(ctx).Str("order_id", orderID).Int("body_bytes", len(body)).
+		Msg("order: body hashed, handing off to relay")
 
-	h.log.Debug().Msg("Date parsed successfull")
-	dateCreated := dateParsed.Format("2006-01-02")
-	orderID := strconv.Itoa(newOrder.OrderID)
-
-	// Create the order
-	out, err := h.orderSvc.Create(orderApp.CreateOrderCommand{
-		OrderID:     orderID,
-		Payload:     string(raw_payload),
-		DateCreated: dateCreated,
-		CreatedAt:   newOrder.SubmittedDate,
+	res, err := h.orderSvc.Relay(ctx, orderApp.RelayOrderCommand{
+		OrderID: orderID,
+		Body:    body,
 	})
 	if err != nil {
-		h.log.Error().Err(err).Msg("Error creating order")
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error creating order", "message": "Unable to create order"})
+		// Service has already incremented OrdersRejected{reason=sqs_error}
+		// and recorded the error on the span via its own logging.
+		h.log.Warn().Ctx(ctx).Str("order_id", orderID).Msg("order: relay failed, returning 502")
+		return c.JSON(http.StatusBadGateway, map[string]string{
+			"error":   "relay failed",
+			"message": "the order was received but could not be forwarded to SQS",
+		})
 	}
 
-	// Sending the order to the publisher
-	h.log.Debug().Msg("Relaying to Publisher")
-	err = h.orderSvc.RelayOrder(orderApp.RelayOrderCommand{
-		OrderID: strconv.Itoa(newOrder.OrderID),
-		Order: order.Order{
-			ID:          strconv.Itoa(newOrder.OrderID),
-			Payload:     string(raw_payload),
-			DateCreated: dateCreated,
-			CreatedAt:   newOrder.SubmittedDate,
-		},
-	})
-	if err != nil {
-		h.log.Error().Err(err).Msg("Error relaying order")
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error relaying order", "message": "Unable to relay order"})
-	}
-	h.log.Debug().Msg("Order relay successful")
-	h.log.Info().Msg("Order request processed successfully")
-	// h.notifier.Send(fmt.Sprintf("Order ID: %s, Date Created: %s", orderID, dateCreated))
-	return c.JSON(http.StatusCreated, out)
-}
-
-func (h *Handler) ReprintLatestOrder(c echo.Context) error {
-	h.log.Info().Msg("Reprinting latest order")
-	err := h.orderSvc.ReprintLatestOrder(orderApp.ReprintLatestOrderCommand{})
-	if err != nil {
-		h.log.Error().Err(err).Msg("Error reprinting latest order")
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error reprinting latest order", "message": "Unable to reprint latest order"})
-	}
-	h.log.Info().Msg("Latest order reprinted")
-	return c.String(http.StatusOK, "Latest order reprinted")
-}
-
-// TODO: Implement
-func (h *Handler) GetTodaysOrders(c echo.Context) error {
-	return c.String(http.StatusOK, "Todays orders")
-}
-
-// TODO: Implement
-func (h *Handler) GetLatestOrder(c echo.Context) error {
-	return c.String(http.StatusOK, "Latest order")
-}
-
-func parseSubmittedDate(submittedDate string) (time.Time, error) {
-	// layout := "2006-01-02T15:04:05-0300"
-	layouts := []string{
-		"2006-01-02T15:04:05-0300",
-		"2006-01-02T15:04:05Z07:00",
-		"2006-01-02T15:04:05",
-		time.RFC3339,
-	}
-	for _, layout := range layouts {
-		if t, err := time.Parse(layout, submittedDate); err == nil {
-			return t, nil
-		}
-	}
-	return time.Time{}, fmt.Errorf("invalid submitted date format")
-}
-
-func parseSUbmittedDate(submittedDate string) (time.Time, error) {
-	// layout := "2006-01-02T15:04:05-0300"
-	layouts := []string{
-		"2006-01-02T15:04:05-0300",
-		"2006-01-02T15:04:05Z07:00",
-		"2006-01-02T15:04:05",
-		time.RFC3339,
-	}
-	for _, layout := range layouts {
-		if t, err := time.Parse(layout, submittedDate); err == nil {
-			return t, nil
-		}
-	}
-	return time.Time{}, fmt.Errorf("invalid submitted date format")
+	h.log.Debug().Ctx(ctx).Str("order_id", orderID).Msg("order: relay succeeded, returning 202")
+	return c.JSON(http.StatusAccepted, res)
 }

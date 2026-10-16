@@ -1,25 +1,39 @@
 services:
   api:
-    image: ghcr.io/aaryandhakal22/online-api:latest
-    environment:
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION}
-      - TRUST_PROXY=1
-    env_file:
-      - .env
+    # Tag is pinnable via ONLINE_API_TAG in /opt/ingest/.env (managed by the
+    # GHA deploy step). `prod-latest` is the safe default — it tracks the
+    # newest semver tag that CI pushed.
+    image: ghcr.io/aaryandhakal22/online-api:${ONLINE_API_TAG:-prod-latest}
     container_name: quicc_online_backend
     restart: always
+    environment:
+      APP_ENV:
+      DOMAIN:
+      LOG_LEVEL:
+      LOG_STYLE:
+      SERVER_PORT:
+      RATE_LIMIT_PER_SEC:
+      SQS_QUEUE_URL:
+      AWS_REGION:
+      AWS_ACCESS_KEY_ID:
+      AWS_SECRET_ACCESS_KEY:
+      DEFAULT_API_KEY:
+      ADMIN_PASS_HASH:
+      OTEL_EXPORTER_OTLP_ENDPOINT:
+      OTEL_EXPORTER_OTLP_HEADERS:
+      OTEL_SERVICE_NAME:
+      PUSHOVER_APP_TOKEN:
+      NOTIFICATION_BOSS:
+      NOTIFICATION_AARYAN:
+      DB_PATH:
+      TRUST_PROXY: "1"
     ports:
       - "1323:1323"
     volumes:
       - /opt/ingest/data:/data
-    depends_on:
-      redis:
-        condition: service_healthy
 
   proxy:
-    image: ghcr.io/aaryandhakal22/online-nginx:latest
+    image: ghcr.io/aaryandhakal22/online-nginx:${ONLINE_NGINX_TAG:-prod-latest}
     container_name: quicc_online_proxy
     restart: unless-stopped
     depends_on:
@@ -36,16 +50,16 @@ services:
   certbot_init:
     image: certbot/dns-cloudflare:latest
     container_name: quicc_certbot_init
-    env_file:
-      - .env
+    environment:
+      CLOUDFLARE_API_TOKEN:
+      CERTBOT_DOMAIN:
+      CERTBOT_EMAIL:
     volumes:
       - letsencrypt:/etc/letsencrypt
       - letsencrypt_logs:/var/log/letsencrypt
       - ./scripts/certbot.sh:/certbot.sh:ro
     entrypoint: /certbot.sh
     command: ["init"]
-      
-
 
   certbot_renew:
     image: certbot/dns-cloudflare:latest
@@ -54,28 +68,16 @@ services:
     depends_on:
       certbot_init:
         condition: service_completed_successfully
-    env_file:
-      - .env
+    environment:
+      CLOUDFLARE_API_TOKEN:
+      CERTBOT_DOMAIN:
+      CERTBOT_EMAIL:
     volumes:
       - letsencrypt:/etc/letsencrypt
       - letsencrypt_logs:/var/log/letsencrypt
       - ./scripts/certbot.sh:/certbot.sh:ro
     entrypoint: /certbot.sh
     command: ["renew"]
-
-  redis:
-    container_name: quicc_online_redis
-    restart: always
-    image: redis:alpine
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASS}", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    ports:
-      - "${REDIS_PORT}:6379"
-    command: ["redis-server", "--requirepass", "${REDIS_PASS}"]
-
 
 volumes:
   letsencrypt:
