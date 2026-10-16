@@ -7,8 +7,9 @@ name: Verify, build & push (GHCR)
 #   1. verify           — go vet + go test + pytest. Blocks every build.
 #   2. build-staging    — every branch push. Tags (floating ones move):
 #                           staging → staging-latest (floating), staging-<sha7>
-#                           master  → prod-latest (floating),    prod-<sha7>
+#                           master  → master-<sha7> (never deployed)
 #                           other   → branch-<slug>
+#                         Never writes `latest` / `prod-latest` (what prod runs).
 #   3. build-production — semver tag push only (v1.2.3). Tags:
 #                           1.2.3, prod-v1.2.3 (immutable)
 #
@@ -164,8 +165,7 @@ jobs:
           tags: |
             type=raw,value=staging-latest,enable=${{ github.ref == 'refs/heads/staging' }}
             type=sha,prefix=staging-,format=short,enable=${{ github.ref == 'refs/heads/staging' }}
-            type=raw,value=prod-latest,enable=${{ github.ref == 'refs/heads/master' }}
-            type=sha,prefix=prod-,format=short,enable=${{ github.ref == 'refs/heads/master' }}
+            type=sha,prefix=master-,format=short,enable=${{ github.ref == 'refs/heads/master' }}
             type=ref,event=branch,prefix=branch-,enable=${{ github.ref != 'refs/heads/staging' && github.ref != 'refs/heads/master' }}
 
       - name: Build and push staging image
