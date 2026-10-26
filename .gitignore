@@ -47,3 +47,8 @@ Thumbs.db
 # Python test caches.
 __pycache__/
 *.pyc
+
+# Local notes, not tracked.
+CLAUDE.md
+CLAUDE.local.md
+.claude/
