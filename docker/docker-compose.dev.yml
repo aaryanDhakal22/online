@@ -62,6 +62,10 @@ services:
       - ../backend:/src
       - ~/.aws:/root/.aws:ro
       - sqlite_data:/data
+      # Go module + build caches survive container recreation, so air's first
+      # compile after a `devreset`/recreate is incremental.
+      - go_mod:/go/pkg/mod
+      - go_build:/root/.cache/go-build
     ports:
       # Host bind port is sourced from Doppler (DEV_HOST_PORT) — set to 1324 in
       # online's dev config so it doesn't collide with main on one box. The
@@ -91,3 +95,5 @@ services:
 
 volumes:
   sqlite_data:
+  go_mod:
+  go_build:

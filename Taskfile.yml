@@ -101,11 +101,6 @@ tasks:
     cmds:
       - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- uv run --directory tests pytest -v -m "not slow"
 
-  test-script:
-    desc: "Run the legacy interactive harness (test.py)"
-    cmds:
-      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- uv run --directory tests python test.py
-
   # ---- Deploy helpers ---------------------------------------------------
 
   transport-compose:
@@ -114,7 +109,8 @@ tasks:
       - scp {{.PROD_CONFIG}} lightsail-api:/opt/ingest/docker-compose.yml
 
   # ──────────────────────────────────────────────────────────────────────
-  # Versioning — see ../scripts/version.sh
+  # Versioning — see ../scripts/version.sh. Releases (tags) go through the
+  # quicc-ops deploy/release.sh only; there is no release task here.
   # ──────────────────────────────────────────────────────────────────────
 
   version-current:
@@ -138,15 +134,3 @@ tasks:
     desc: "Bump and tag: task version-bump -- patch|minor|major"
     cmds:
       - ../scripts/version.sh bump {{.CLI_ARGS}}
-
-  version-tag:
-    desc: "(Re-)tag the current VERSION without bumping. Pass -f to overwrite."
-    cmds:
-      - ../scripts/version.sh tag {{.CLI_ARGS}}
-
-  release:
-    desc: "Bump (default patch) and push tag — CI builds + SSH-deploys to Lightsail. task release -- minor"
-    cmds:
-      - ../scripts/version.sh bump {{- if .CLI_ARGS }} {{.CLI_ARGS}}{{- else }} patch{{- end }}
-      - git push origin HEAD
-      - git push origin --tags
