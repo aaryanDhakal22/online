@@ -1,0 +1,77 @@
+# online — staging, blue-green (lightsail-stag only; prod adopts it at the
+# online v2 cutover).
+#
+# Two slots of the same service; only one is running between deploys:
+#   online-blue  → 127.0.0.1:13231
+#   online-green → 127.0.0.1:13232
+# Host nginx (TLS for staging.quiccpos.com) proxies to the `quicc_online`
+# upstream, which deploy.sh points at the live slot
+# (/etc/nginx/conf.d/quicc-online-upstream.conf). Both slots share ONE SQLite
+# file in the `quicc-online-data` volume (WAL; no key operations during a
+# deploy). Image tags come from .env.stag (BLUE_TAG / GREEN_TAG), written by
+# deploy.sh — never edit them by hand mid-deploy.
+#
+# Secrets come from Doppler ingest/stg (deploy.sh wraps compose in
+# `doppler run`). Run everything through deploy.sh; by hand:
+#   doppler run -- docker compose -f docker-compose.staging.yml --env-file .env.stag --profile blue up -d online-blue
+
+name: quicc-online
+
+x-api: &api
+  restart: unless-stopped
+  environment:
+    APP_ENV:
+    DOMAIN:
+    LOG_LEVEL:
+    LOG_STYLE:
+    RATE_LIMIT_PER_SEC:
+    SQS_QUEUE_URL:
+    SQS_ENDPOINT:
+    AWS_REGION:
+    AWS_ACCESS_KEY_ID:
+    AWS_SECRET_ACCESS_KEY:
+    DEFAULT_API_KEY:
+    ADMIN_PASS_HASH:
+    SCOPE_TENANT_ID:
+    SCOPE_LOCATION_ID:
+    OTEL_EXPORTER_OTLP_ENDPOINT:
+    OTEL_EXPORTER_OTLP_HEADERS:
+    OTEL_SERVICE_NAME:
+    PUSHOVER_APP_TOKEN:
+    NOTIFICATION_BOSS:
+    NOTIFICATION_AARYAN:
+    # Fixed here, not from Doppler: both slots must listen on 1323 inside and
+    # open the same database file.
+    SERVER_PORT: "1323"
+    DB_PATH: /data/app.db
+    TRUST_PROXY: "1"
+    TZ: America/New_York
+  volumes:
+    - online-data:/data
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  online-blue:
+    <<: *api
+    image: ghcr.io/aaryandhakal22/online-api:${BLUE_TAG:?BLUE_TAG not set in .env.stag}
+    container_name: quicc-online-blue
+    profiles: ["blue"]
+    ports:
+      - "127.0.0.1:13231:1323"
+
+  online-green:
+    <<: *api
+    image: ghcr.io/aaryandhakal22/online-api:${GREEN_TAG:?GREEN_TAG not set in .env.stag}
+    container_name: quicc-online-green
+    profiles: ["green"]
+    ports:
+      - "127.0.0.1:13232:1323"
+
+volumes:
+  online-data:
+    # Fixed name so backup.sh and the restore steps can find it.
+    name: quicc-online-data

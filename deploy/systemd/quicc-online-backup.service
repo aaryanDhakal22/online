@@ -1,0 +1,10 @@
+[Unit]
+Description=Back up online's SQLite (vendor API key) — quicc
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+# Adjust the path to where deploy/ lives on the box.
+ExecStart=/opt/online/deploy/backup.sh
+Nice=10

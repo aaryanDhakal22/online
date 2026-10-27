@@ -1,12 +1,13 @@
 # online/ tests
 
-Two suites live here:
-
 | File | What it is | When to use |
 |---|---|---|
 | `test_api.py` | pytest, asserts on responses | CI; default. Run via `task test`. |
-| `test.py` | interactive menu (legacy) | Hand-poking the dev stack. Run via `task test-script`. |
-| `prod_test.py` | one-shot probe | Smoke-test prod after deploy. |
+| `prod_test.py` | one-shot probe (reads `/getKey` only) | Not collected by pytest; `client.py` refuses `APP_ENV=prod`. |
+| `test_deploy.py` | runs `deploy/deploy.sh` in `DRY_RUN` against fake `docker`/`curl`/`nginx` | Offline; no stack needed. |
+
+The old interactive harness (`test.py` / `main.py`, `task test-script`) was
+removed: it rotated keys with the pre-guard `/set` semantics.
 
 ## Running
 
@@ -16,7 +17,6 @@ inject them. From `online/`:
 ```bash
 task test          # pytest suite
 task test-quick    # everything except @pytest.mark.slow
-task test-script   # interactive menu (test.py)
 ```
 
 Tests assume the API is reachable at `${DEV_URL}:${DEV_BACKEND_PORT}` (dev)
@@ -38,8 +38,12 @@ The fixtures in `conftest.py` read these. Doppler wires them.
 
 ## Notes for new tests
 
+- **Never touch the target's real vendor key.** `/set` and `/setKey` only
+  ADD keys; a test that adds one takes the `restore_active_key` fixture, which
+  afterwards authenticates with the original key and RETIRES every key the test
+  added (`POST /keys/{id}/retire`). Never retire or overwrite the original.
 - **Pytest fixtures over module-level state.** `conftest.py` exposes
-  `client`, `admin_passcode`, and `active_key`. Compose new tests around
+  `client`, `admin_passcode`, `active_key` and `restore_active_key`. Compose new tests around
   those instead of recreating an `ApiClient` at import time.
 - **Don't assume SQS is reachable.** In dev with `SQS_QUEUE_URL` empty,
   online/ uses a noop publisher — `/order` returns 202 but nothing reaches

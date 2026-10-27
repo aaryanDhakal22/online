@@ -7,6 +7,9 @@
 # Local env overrides.
 .env
 .env.local
+# Deploy state on the box (deploy/deploy.sh).
+deploy/.env.stag
+deploy/.state
 *.local.*
 
 # Go / build artefacts.
