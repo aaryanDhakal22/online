@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -42,27 +43,29 @@ var (
 
 const bootstrapTracerName = "quiccpos/online/bootstrap"
 
-// applySchema runs the embedded migration script in its own root span so
+// applySchema runs the embedded migrations in their own root span so
 // startup hiccups show up in Tempo as well as in the logs.
 func applySchema(ctx context.Context, db *sql.DB, logger zerolog.Logger) {
 	tracer := otel.Tracer(bootstrapTracerName)
 	ctx, span := tracer.Start(ctx, "schema.apply", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
-	logger.Debug().Ctx(ctx).Msg("schema: reading 001_setup.sql from embedded FS")
-	schema, err := migrations.FS.ReadFile("sql/001_setup.sql")
-	if err != nil {
+	if err := migrations.Apply(ctx, db); err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "ReadFile failed")
-		logger.Fatal().Err(err).Msg("failed to read schema file")
-	}
-	logger.Debug().Ctx(ctx).Int("bytes", len(schema)).Msg("schema: applying via db.ExecContext")
-	if _, err := db.ExecContext(ctx, string(schema)); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "ExecContext failed")
+		span.SetStatus(codes.Error, "migrations failed")
 		logger.Fatal().Err(err).Msg("failed to apply schema")
 	}
 	logger.Info().Ctx(ctx).Msg("schema: applied")
+}
+
+// sqliteDSN adds the pragmas every connection needs: WAL so the blue-green
+// slots (two processes, one file) and the backup script can read while the
+// other writes, and a busy timeout instead of an instant SQLITE_BUSY.
+func sqliteDSN(path string) string {
+	if strings.Contains(path, "?") {
+		return path
+	}
+	return path + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"
 }
 
 func main() {
@@ -120,7 +123,7 @@ func main() {
 
 	// SQLite open + migrations
 	logger.Debug().Ctx(ctx).Str("path", cfg.DBPath).Msg("db: opening sqlite")
-	db, err := sql.Open("sqlite", cfg.DBPath)
+	db, err := sql.Open("sqlite", sqliteDSN(cfg.DBPath))
 	if err != nil {
 		logger.Fatal().Err(err).Str("db_path", cfg.DBPath).Msg("open db")
 	}

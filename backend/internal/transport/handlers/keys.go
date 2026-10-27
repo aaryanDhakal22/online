@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	keyApp "quicc/online/internal/app/key"
+	keys "quicc/online/internal/domain/key"
 
 	"github.com/labstack/echo/v5"
 )
@@ -30,7 +31,8 @@ func (h *Handler) Generate(c *echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-// Set activates the most recently primed key. Admin-gated.
+// Set activates the most recently primed key next to the current one(s) —
+// nothing is deactivated (retire the old key with RetireKey). Admin-gated.
 func (h *Handler) Set(c *echo.Context) error {
 	ctx := c.Request().Context()
 	h.log.Debug().Ctx(ctx).Msg("handler.set: invoked")
@@ -44,8 +46,8 @@ func (h *Handler) Set(c *echo.Context) error {
 }
 
 // SetKey is the break-glass path: admin pastes a known plaintext (e.g. one
-// the sender already has configured in their CLI) and we activate it
-// directly. Bypasses the Primed staging step.
+// the sender already has configured in their CLI) and we add it as active
+// directly. Bypasses the Primed staging step; never deactivates other keys.
 func (h *Handler) SetKey(c *echo.Context) error {
 	ctx := c.Request().Context()
 	var cmd keyApp.SetByKeyCommand
@@ -103,14 +105,54 @@ func (h *Handler) Verify(c *echo.Context) error {
 	return c.JSON(http.StatusOK, keyApp.VerifyKeyResult{Match: match})
 }
 
-// GetKey returns the active key plaintext (admin-only).
+// GetKey returns the newest active key's plaintext (admin-only).
 func (h *Handler) GetKey(c *echo.Context) error {
 	ctx := c.Request().Context()
 	res, err := h.keySvc.Get(ctx)
+	if errors.Is(err, keys.ErrNotFound) {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "no active key"})
+	}
 	if err != nil {
 		h.log.Error().Err(err).Ctx(ctx).Msg("handler.getKey: failed")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "unable to get key"})
 	}
 	h.log.Debug().Ctx(ctx).Msg("handler.getKey: served")
 	return c.JSON(http.StatusOK, res)
+}
+
+// ListKeys returns every key's id / status / created_at / last_used_at —
+// never the plaintext (admin-only).
+func (h *Handler) ListKeys(c *echo.Context) error {
+	ctx := c.Request().Context()
+	list, err := h.keySvc.List(ctx)
+	if err != nil {
+		h.log.Error().Err(err).Ctx(ctx).Msg("handler.listKeys: failed")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "unable to list keys"})
+	}
+	return c.JSON(http.StatusOK, map[string]any{"keys": list})
+}
+
+// RetireKey deactivates one active key — step two of a rotation
+// (admin-only). 409 last_active_key when it is the only active key, 409
+// new_key_unconfirmed until another active key has been used since it was
+// added, 409 not_active, 404 not_found.
+func (h *Handler) RetireKey(c *echo.Context) error {
+	ctx := c.Request().Context()
+	id := c.Param("id")
+	err := h.keySvc.Retire(ctx, id)
+	switch {
+	case err == nil:
+		h.log.Info().Ctx(ctx).Str("key_id", id).Msg("handler.retireKey: retired")
+		return c.JSON(http.StatusOK, map[string]string{"id": id, "status": string(keys.Inactive)})
+	case errors.Is(err, keys.ErrNotFound):
+		return c.JSON(http.StatusNotFound, map[string]string{"error": keys.ErrNotFound.Error()})
+	case errors.Is(err, keys.ErrLastActiveKey),
+		errors.Is(err, keys.ErrNewKeyUnconfirmed),
+		errors.Is(err, keys.ErrNotActive):
+		h.log.Warn().Ctx(ctx).Str("key_id", id).Str("reason", err.Error()).Msg("handler.retireKey: refused")
+		return c.JSON(http.StatusConflict, map[string]string{"error": err.Error()})
+	default:
+		h.log.Error().Err(err).Ctx(ctx).Str("key_id", id).Msg("handler.retireKey: failed")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "unable to retire key"})
+	}
 }

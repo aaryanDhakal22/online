@@ -9,12 +9,23 @@ import (
 	"github.com/google/uuid"
 )
 
+// TimeLayout is how key timestamps are stored: UTC, fixed width, so the
+// strings also sort correctly.
+const TimeLayout = "2006-01-02T15:04:05.000000Z"
+
 type APIKey struct {
-	ID          string
-	Key         string
-	Status      KeyStatus
-	GeneratedAt string
+	ID     string
+	Key    string
+	Status KeyStatus
+	// CreatedAt is zero for rows from before the key guard (002).
+	CreatedAt time.Time
+	// LastUsedAt is the last successful vendor auth with this key; zero if
+	// never used since the key guard shipped.
+	LastUsedAt time.Time
 }
+
+// Now is the clock used for key timestamps (tests may replace it).
+var Now = func() time.Time { return time.Now().UTC() }
 
 // NewAPIKey generates a fresh random API key marked Primed (the staging
 // status). Callers are expected to call Repository.UnprimeAll first so only
@@ -27,21 +38,21 @@ func NewAPIKey() (*APIKey, error) {
 		return nil, fmt.Errorf("rand.Read: %w", err)
 	}
 	return &APIKey{
-		ID:          uuid.New().String(),
-		Key:         base64.RawURLEncoding.EncodeToString(b),
-		Status:      Primed,
-		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
+		ID:        uuid.New().String(),
+		Key:       base64.RawURLEncoding.EncodeToString(b),
+		Status:    Primed,
+		CreatedAt: Now(),
 	}, nil
 }
 
 // FromExisting builds an APIKey value from a known plaintext (e.g. seeding
-// from DEFAULT_API_KEY on first boot, or break-glass setKey path). The
-// status is fixed to Active.
+// from DEFAULT_API_KEY on first boot, or the setKey path). The status is
+// fixed to Active.
 func FromExisting(plain string) *APIKey {
 	return &APIKey{
-		ID:          uuid.New().String(),
-		Key:         plain,
-		Status:      Active,
-		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
+		ID:        uuid.New().String(),
+		Key:       plain,
+		Status:    Active,
+		CreatedAt: Now(),
 	}
 }

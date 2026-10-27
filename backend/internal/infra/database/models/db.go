@@ -30,17 +30,23 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createKeyStmt, err = db.PrepareContext(ctx, createKey); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateKey: %w", err)
 	}
-	if q.deactivateKeyStmt, err = db.PrepareContext(ctx, deactivateKey); err != nil {
-		return nil, fmt.Errorf("error preparing query DeactivateKey: %w", err)
-	}
-	if q.getActiveKeyStmt, err = db.PrepareContext(ctx, getActiveKey); err != nil {
-		return nil, fmt.Errorf("error preparing query GetActiveKey: %w", err)
-	}
 	if q.getKeyByIDStmt, err = db.PrepareContext(ctx, getKeyByID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetKeyByID: %w", err)
 	}
 	if q.getPrimedKeyStmt, err = db.PrepareContext(ctx, getPrimedKey); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPrimedKey: %w", err)
+	}
+	if q.listActiveKeysStmt, err = db.PrepareContext(ctx, listActiveKeys); err != nil {
+		return nil, fmt.Errorf("error preparing query ListActiveKeys: %w", err)
+	}
+	if q.listKeysStmt, err = db.PrepareContext(ctx, listKeys); err != nil {
+		return nil, fmt.Errorf("error preparing query ListKeys: %w", err)
+	}
+	if q.retireKeyStmt, err = db.PrepareContext(ctx, retireKey); err != nil {
+		return nil, fmt.Errorf("error preparing query RetireKey: %w", err)
+	}
+	if q.touchKeyLastUsedStmt, err = db.PrepareContext(ctx, touchKeyLastUsed); err != nil {
+		return nil, fmt.Errorf("error preparing query TouchKeyLastUsed: %w", err)
 	}
 	if q.unprimeAllStmt, err = db.PrepareContext(ctx, unprimeAll); err != nil {
 		return nil, fmt.Errorf("error preparing query UnprimeAll: %w", err)
@@ -60,16 +66,6 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createKeyStmt: %w", cerr)
 		}
 	}
-	if q.deactivateKeyStmt != nil {
-		if cerr := q.deactivateKeyStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing deactivateKeyStmt: %w", cerr)
-		}
-	}
-	if q.getActiveKeyStmt != nil {
-		if cerr := q.getActiveKeyStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getActiveKeyStmt: %w", cerr)
-		}
-	}
 	if q.getKeyByIDStmt != nil {
 		if cerr := q.getKeyByIDStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getKeyByIDStmt: %w", cerr)
@@ -78,6 +74,26 @@ func (q *Queries) Close() error {
 	if q.getPrimedKeyStmt != nil {
 		if cerr := q.getPrimedKeyStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getPrimedKeyStmt: %w", cerr)
+		}
+	}
+	if q.listActiveKeysStmt != nil {
+		if cerr := q.listActiveKeysStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listActiveKeysStmt: %w", cerr)
+		}
+	}
+	if q.listKeysStmt != nil {
+		if cerr := q.listKeysStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listKeysStmt: %w", cerr)
+		}
+	}
+	if q.retireKeyStmt != nil {
+		if cerr := q.retireKeyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing retireKeyStmt: %w", cerr)
+		}
+	}
+	if q.touchKeyLastUsedStmt != nil {
+		if cerr := q.touchKeyLastUsedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing touchKeyLastUsedStmt: %w", cerr)
 		}
 	}
 	if q.unprimeAllStmt != nil {
@@ -122,27 +138,31 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 }
 
 type Queries struct {
-	db                DBTX
-	tx                *sql.Tx
-	activateKeyStmt   *sql.Stmt
-	createKeyStmt     *sql.Stmt
-	deactivateKeyStmt *sql.Stmt
-	getActiveKeyStmt  *sql.Stmt
-	getKeyByIDStmt    *sql.Stmt
-	getPrimedKeyStmt  *sql.Stmt
-	unprimeAllStmt    *sql.Stmt
+	db                   DBTX
+	tx                   *sql.Tx
+	activateKeyStmt      *sql.Stmt
+	createKeyStmt        *sql.Stmt
+	getKeyByIDStmt       *sql.Stmt
+	getPrimedKeyStmt     *sql.Stmt
+	listActiveKeysStmt   *sql.Stmt
+	listKeysStmt         *sql.Stmt
+	retireKeyStmt        *sql.Stmt
+	touchKeyLastUsedStmt *sql.Stmt
+	unprimeAllStmt       *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db:                tx,
-		tx:                tx,
-		activateKeyStmt:   q.activateKeyStmt,
-		createKeyStmt:     q.createKeyStmt,
-		deactivateKeyStmt: q.deactivateKeyStmt,
-		getActiveKeyStmt:  q.getActiveKeyStmt,
-		getKeyByIDStmt:    q.getKeyByIDStmt,
-		getPrimedKeyStmt:  q.getPrimedKeyStmt,
-		unprimeAllStmt:    q.unprimeAllStmt,
+		db:                   tx,
+		tx:                   tx,
+		activateKeyStmt:      q.activateKeyStmt,
+		createKeyStmt:        q.createKeyStmt,
+		getKeyByIDStmt:       q.getKeyByIDStmt,
+		getPrimedKeyStmt:     q.getPrimedKeyStmt,
+		listActiveKeysStmt:   q.listActiveKeysStmt,
+		listKeysStmt:         q.listKeysStmt,
+		retireKeyStmt:        q.retireKeyStmt,
+		touchKeyLastUsedStmt: q.touchKeyLastUsedStmt,
+		unprimeAllStmt:       q.unprimeAllStmt,
 	}
 }

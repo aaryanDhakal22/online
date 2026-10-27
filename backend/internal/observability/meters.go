@@ -15,7 +15,7 @@ type Meters struct {
 	// Order ingest pipeline
 	OrdersReceived    metric.Int64Counter
 	OrdersRelayed     metric.Int64Counter
-	OrdersRejected    metric.Int64Counter   // attribute: reason
+	OrdersRejected    metric.Int64Counter // attribute: reason
 	OrderRelayLatency metric.Float64Histogram
 	BodyBytes         metric.Int64Histogram
 
@@ -29,6 +29,7 @@ type Meters struct {
 	KeysGenerated metric.Int64Counter
 	KeysActivated metric.Int64Counter // attribute: path (primed | break_glass)
 	KeysBootstrap metric.Int64Counter // attribute: result (seeded | existing | skipped)
+	KeysRetired   metric.Int64Counter // attribute: result (retired | refused reason)
 
 	// Liveness
 	LivenessStale metric.Int64Counter // attribute: goroutine
@@ -96,6 +97,9 @@ func NewMeters() (Meters, error) {
 		return Meters{}, err
 	}
 	if ms.KeysBootstrap, err = mk("keys.bootstrap", "Bootstrap outcomes at startup (result attribute: seeded|existing|skipped)"); err != nil {
+		return Meters{}, err
+	}
+	if ms.KeysRetired, err = mk("keys.retired", "Key retire attempts (result attribute: retired|last_active_key|new_key_unconfirmed|not_found|not_active|error)"); err != nil {
 		return Meters{}, err
 	}
 

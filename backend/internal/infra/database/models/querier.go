@@ -11,10 +11,13 @@ import (
 type Querier interface {
 	ActivateKey(ctx context.Context, id string) error
 	CreateKey(ctx context.Context, arg CreateKeyParams) error
-	DeactivateKey(ctx context.Context) error
-	GetActiveKey(ctx context.Context) (ApiKey, error)
 	GetKeyByID(ctx context.Context, id string) (ApiKey, error)
 	GetPrimedKey(ctx context.Context) (ApiKey, error)
+	// Newest first; legacy rows (NULL created_at) sort last.
+	ListActiveKeys(ctx context.Context) ([]ApiKey, error)
+	ListKeys(ctx context.Context) ([]ApiKey, error)
+	RetireKey(ctx context.Context, id string) (int64, error)
+	TouchKeyLastUsed(ctx context.Context, arg TouchKeyLastUsedParams) error
 	UnprimeAll(ctx context.Context) error
 }
 

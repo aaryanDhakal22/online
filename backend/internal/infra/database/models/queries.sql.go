@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	"database/sql"
 )
 
 const activateKey = `-- name: ActivateKey :exec
@@ -19,60 +20,154 @@ func (q *Queries) ActivateKey(ctx context.Context, id string) error {
 }
 
 const createKey = `-- name: CreateKey :exec
-INSERT INTO api_keys (id, key, status) VALUES (?1, ?2, ?3)
+INSERT INTO api_keys (id, key, status, created_at) VALUES (?1, ?2, ?3, ?4)
 `
 
 type CreateKeyParams struct {
-	ID     string `json:"id"`
-	Key    string `json:"key"`
-	Status string `json:"status"`
+	ID        string         `json:"id"`
+	Key       string         `json:"key"`
+	Status    string         `json:"status"`
+	CreatedAt sql.NullString `json:"created_at"`
 }
 
 func (q *Queries) CreateKey(ctx context.Context, arg CreateKeyParams) error {
-	_, err := q.exec(ctx, q.createKeyStmt, createKey, arg.ID, arg.Key, arg.Status)
+	_, err := q.exec(ctx, q.createKeyStmt, createKey,
+		arg.ID,
+		arg.Key,
+		arg.Status,
+		arg.CreatedAt,
+	)
 	return err
-}
-
-const deactivateKey = `-- name: DeactivateKey :exec
-UPDATE api_keys SET status = 'inactive' WHERE status = 'active'
-`
-
-func (q *Queries) DeactivateKey(ctx context.Context) error {
-	_, err := q.exec(ctx, q.deactivateKeyStmt, deactivateKey)
-	return err
-}
-
-const getActiveKey = `-- name: GetActiveKey :one
-SELECT id, "key", status FROM api_keys WHERE status = 'active' ORDER BY id DESC LIMIT 1
-`
-
-func (q *Queries) GetActiveKey(ctx context.Context) (ApiKey, error) {
-	row := q.queryRow(ctx, q.getActiveKeyStmt, getActiveKey)
-	var i ApiKey
-	err := row.Scan(&i.ID, &i.Key, &i.Status)
-	return i, err
 }
 
 const getKeyByID = `-- name: GetKeyByID :one
-SELECT id, "key", status FROM api_keys WHERE id = ?1
+SELECT id, "key", status, created_at, last_used_at FROM api_keys WHERE id = ?1
 `
 
 func (q *Queries) GetKeyByID(ctx context.Context, id string) (ApiKey, error) {
 	row := q.queryRow(ctx, q.getKeyByIDStmt, getKeyByID, id)
 	var i ApiKey
-	err := row.Scan(&i.ID, &i.Key, &i.Status)
+	err := row.Scan(
+		&i.ID,
+		&i.Key,
+		&i.Status,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+	)
 	return i, err
 }
 
 const getPrimedKey = `-- name: GetPrimedKey :one
-SELECT id, "key", status FROM api_keys WHERE status = 'primed' ORDER BY id DESC LIMIT 1
+SELECT id, "key", status, created_at, last_used_at FROM api_keys WHERE status = 'primed'
+ORDER BY COALESCE(created_at, '') DESC, rowid DESC LIMIT 1
 `
 
 func (q *Queries) GetPrimedKey(ctx context.Context) (ApiKey, error) {
 	row := q.queryRow(ctx, q.getPrimedKeyStmt, getPrimedKey)
 	var i ApiKey
-	err := row.Scan(&i.ID, &i.Key, &i.Status)
+	err := row.Scan(
+		&i.ID,
+		&i.Key,
+		&i.Status,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+	)
 	return i, err
+}
+
+const listActiveKeys = `-- name: ListActiveKeys :many
+SELECT id, "key", status, created_at, last_used_at FROM api_keys WHERE status = 'active'
+ORDER BY COALESCE(created_at, '') DESC, rowid DESC
+`
+
+// Newest first; legacy rows (NULL created_at) sort last.
+func (q *Queries) ListActiveKeys(ctx context.Context) ([]ApiKey, error) {
+	rows, err := q.query(ctx, q.listActiveKeysStmt, listActiveKeys)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ApiKey
+	for rows.Next() {
+		var i ApiKey
+		if err := rows.Scan(
+			&i.ID,
+			&i.Key,
+			&i.Status,
+			&i.CreatedAt,
+			&i.LastUsedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listKeys = `-- name: ListKeys :many
+SELECT id, "key", status, created_at, last_used_at FROM api_keys
+ORDER BY COALESCE(created_at, '') DESC, rowid DESC
+`
+
+func (q *Queries) ListKeys(ctx context.Context) ([]ApiKey, error) {
+	rows, err := q.query(ctx, q.listKeysStmt, listKeys)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ApiKey
+	for rows.Next() {
+		var i ApiKey
+		if err := rows.Scan(
+			&i.ID,
+			&i.Key,
+			&i.Status,
+			&i.CreatedAt,
+			&i.LastUsedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const retireKey = `-- name: RetireKey :execrows
+UPDATE api_keys SET status = 'inactive' WHERE id = ?1 AND status = 'active'
+`
+
+func (q *Queries) RetireKey(ctx context.Context, id string) (int64, error) {
+	result, err := q.exec(ctx, q.retireKeyStmt, retireKey, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const touchKeyLastUsed = `-- name: TouchKeyLastUsed :exec
+UPDATE api_keys SET last_used_at = ?1 WHERE id = ?2
+`
+
+type TouchKeyLastUsedParams struct {
+	LastUsedAt sql.NullString `json:"last_used_at"`
+	ID         string         `json:"id"`
+}
+
+func (q *Queries) TouchKeyLastUsed(ctx context.Context, arg TouchKeyLastUsedParams) error {
+	_, err := q.exec(ctx, q.touchKeyLastUsedStmt, touchKeyLastUsed, arg.LastUsedAt, arg.ID)
+	return err
 }
 
 const unprimeAll = `-- name: UnprimeAll :exec

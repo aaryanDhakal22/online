@@ -66,13 +66,17 @@ func routeTable(cms *CMS, h *handler.Handler) []routeDef {
 		def("GET", "/health", "none", "Liveness — 200 if the process is up", ok),
 		def("GET", "/api/v1/healthz", "none", "Liveness (versioned)", ok),
 		def("GET", "/api/v1/version", "none", "Build identifiers (version + commit)", version),
-		def("GET", "/api/v1/verify", "vendor", "Report whether the supplied bearer matches the active key", h.Verify),
-		// Standard mutate flow: anyone /generate (stages a Primed key), admin /set promotes it.
+		def("GET", "/api/v1/verify", "vendor", "Report whether the supplied bearer matches an active key", h.Verify),
+		// Two-step rotation. Add: anyone /generate (stages a Primed key), admin
+		// /set promotes it next to the current key (break-glass: admin /setKey
+		// adds a known plaintext). Retire: admin retires the old key once the
+		// vendor has used the new one. The only active key can never be retired.
 		def("GET", "/api/v1/generate", "none", "Mint a new Primed key (plaintext returned once)", h.Generate),
-		def("GET", "/api/v1/set", "admin", "Promote the Primed key to Active (deactivates prior)", h.Set, cms.AdminMiddleware),
-		// Break-glass: admin already holds the plaintext and sets it Active directly.
-		def("POST", "/api/v1/setKey", "admin", "Insert + activate a plaintext key directly", h.SetKey, cms.AdminMiddleware),
-		def("GET", "/api/v1/getKey", "admin", "Return the active key plaintext", h.GetKey, cms.AdminMiddleware),
+		def("GET", "/api/v1/set", "admin", "Add the Primed key as Active (prior keys stay active)", h.Set, cms.AdminMiddleware),
+		def("POST", "/api/v1/setKey", "admin", "Add a plaintext key as Active directly (prior keys stay active)", h.SetKey, cms.AdminMiddleware),
+		def("GET", "/api/v1/getKey", "admin", "Return the newest active key plaintext", h.GetKey, cms.AdminMiddleware),
+		def("GET", "/api/v1/keys", "admin", "List keys: id/status/created_at/last_used_at (no plaintext)", h.ListKeys, cms.AdminMiddleware),
+		def("POST", "/api/v1/keys/:id/retire", "admin", "Deactivate a key (409 last_active_key / new_key_unconfirmed)", h.RetireKey, cms.AdminMiddleware),
 		// Order ingest — the only path the vendor hits.
 		def("POST", "/api/v1/order", "vendor", "Ingest vendor JSON → publish to SQS (202)", h.CreateOrder, cms.AuthMiddleware),
 	}

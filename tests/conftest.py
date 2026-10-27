@@ -19,10 +19,9 @@ import pytest
 
 from client import ApiClient
 
-# Interactive / prod-targeting scripts, not pytest suites: prod_test.py matches
-# pytest's `*_test.py` pattern and calls load_env() at import (and targets prod);
-# test.py is the legacy interactive harness (`task test-script`).
-collect_ignore = ["prod_test.py", "test.py"]
+# prod_test.py is a one-shot probe, not a pytest suite: it matches pytest's
+# `*_test.py` pattern and calls load_env() at import.
+collect_ignore = ["prod_test.py"]
 
 
 @pytest.fixture(scope="session")
@@ -56,14 +55,38 @@ def active_key(client):
     return key
 
 
+def _active_ids(client, hdr):
+    r = client.get("/keys", headers=hdr)
+    assert r.status_code == 200, f"/keys returned {r.status_code}: {r.text}"
+    return {k["id"] for k in r.json()["keys"] if k["status"] == "active"}
+
+
 @pytest.fixture
 def restore_active_key(client, admin_passcode):
-    """Key-rotation tests change online's ACTIVE vendor key, which would break
-    ONLINE_API_KEY for the e2e suite + console smokes. Snapshot the active
-    plaintext first and put it back (break-glass setKey) afterwards."""
-    resp = client.get("/getKey", headers={"X-Admin-Passcode": admin_passcode})
+    """Key tests ADD active keys (/set, /setKey never deactivate). Afterwards,
+    put online back to the keys that were active before — ONLINE_API_KEY for
+    the e2e suite + console smokes must keep working — by RETIRING the keys
+    the test added (two-step rotation), never by overwriting.
+
+    Retiring needs the remaining key to have been used since the test key was
+    added (409 new_key_unconfirmed otherwise), so the teardown first
+    authenticates with the original key. If a test somehow left the original
+    key inactive, it is added back first and kept."""
+    hdr = {"X-Admin-Passcode": admin_passcode}
+    resp = client.get("/getKey", headers=hdr)
     assert resp.status_code == 200, resp.text
     original = resp.json()["key"]
+    keep = _active_ids(client, hdr)
     yield original
-    r = client.post("/setKey", headers={"X-Admin-Passcode": admin_passcode}, json_data={"key": original})
-    assert r.status_code == 200, f"failed to restore the active vendor key: {r.text}"
+
+    v = client.get("/verify", headers={"Authorization": f"Bearer {original}"})
+    if not (v.status_code == 200 and v.json()["match"]):
+        r = client.post("/setKey", headers=hdr, json_data={"key": original})
+        assert r.status_code == 200, f"failed to re-add the original vendor key: {r.text}"
+        keep.add(r.json()["id"])
+        v = client.get("/verify", headers={"Authorization": f"Bearer {original}"})
+    assert v.status_code == 200 and v.json()["match"], "original vendor key does not verify"
+
+    for key_id in sorted(_active_ids(client, hdr) - keep):
+        r = client.post(f"/keys/{key_id}/retire", headers=hdr)
+        assert r.status_code == 200, f"failed to retire test key {key_id}: {r.status_code} {r.text}"

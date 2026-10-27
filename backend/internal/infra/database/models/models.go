@@ -4,8 +4,14 @@
 
 package models
 
+import (
+	"database/sql"
+)
+
 type ApiKey struct {
-	ID     string `json:"id"`
-	Key    string `json:"key"`
-	Status string `json:"status"`
+	ID         string         `json:"id"`
+	Key        string         `json:"key"`
+	Status     string         `json:"status"`
+	CreatedAt  sql.NullString `json:"created_at"`
+	LastUsedAt sql.NullString `json:"last_used_at"`
 }
