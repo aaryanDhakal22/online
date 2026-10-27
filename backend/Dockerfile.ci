@@ -1,0 +1,13 @@
+# online-api image as CI builds it for staging: the binary is compiled on the
+# runner (cached Go) and this file only packages it. The build context is the
+# directory CI prepares: ./app and an empty ./data. (Production tags and local
+# dev use backend/Dockerfile.)
+FROM gcr.io/distroless/base-debian11:nonroot
+
+WORKDIR /app
+COPY app /app/app
+COPY --chown=65532:65532 data /data
+
+EXPOSE 1323
+
+ENTRYPOINT ["/app/app"]

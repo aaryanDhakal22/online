@@ -16,6 +16,12 @@ name: Verify, build & push (GHCR)
 # NOTE: `master` still holds v1 until the cutover, and v1's own workflow on
 # master SSH-deploys prod. Push v2 to `staging` only (../CUTOVER.md).
 #
+# verify runs the API as a plain binary built on the runner (cached Go) next
+# to an ElasticMQ container — the dev compose stack (air + sqlc install, then
+# air compiling in the container) took ~140 s just to start. The staging api
+# image packages a binary built the same way (backend/Dockerfile.ci). Docs-only
+# pushes don't run CI; a newer push to the same branch cancels the older run.
+#
 # CI builds + pushes images to GHCR ONLY — it does NOT deploy or SSH anywhere
 # (no LIGHTSAIL_*/SSH secrets). Rolling a built image out to a host is manual
 # (planned: orchestrated from the console).
@@ -25,7 +31,12 @@ on:
   push:
     branches: ["**"]
     tags: ["v*"]
+    paths-ignore: ["**.md", "docs/**"] # not applied to tag pushes
   workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type == 'branch' }}
 
 env:
   REGISTRY: ghcr.io
@@ -50,7 +61,21 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
+          cache: false
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-test-${{ hashFiles('backend/go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            go-test-${{ hashFiles('backend/go.sum') }}-
+            go-test-
+
+      - name: ElasticMQ
+        run: |
+          docker run -d --name elasticmq -p 9324:9324 \
+            -v "$PWD/docker/elasticmq.conf:/opt/elasticmq.conf:ro" softwaremill/elasticmq-native:latest
 
       - name: go vet
         working-directory: ./backend
@@ -60,26 +85,17 @@ jobs:
         working-directory: ./backend
         run: go test ./...
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
-
-      - name: Install uv
-        run: pip install --upgrade uv
-
-      - name: Bring up the dev stack
+      - name: Start the API (binary)
+        working-directory: ./backend
         env:
           APP_ENV: dev
           DOMAIN: localhost
           LOG_LEVEL: info
           LOG_STYLE: console
           SERVER_PORT: "1323"
-          DEV_HOST_PORT: "1323"   # compose defaults the host port to 1324
           RATE_LIMIT_PER_SEC: "0"
-          DB_PATH: /data/app.db
-          SQS_QUEUE_URL: http://elasticmq:9324/000000000000/dev-ingest
-          SQS_ENDPOINT: http://elasticmq:9324
+          SQS_QUEUE_URL: http://localhost:9324/000000000000/dev-ingest
+          SQS_ENDPOINT: http://localhost:9324
           AWS_ACCESS_KEY_ID: test
           AWS_SECRET_ACCESS_KEY: test
           AWS_REGION: us-east-1
@@ -87,22 +103,23 @@ jobs:
           # argon2id hash of the literal string "ci-pass". Re-derivable; the
           # plaintext is also literally "ci-pass" — see the pytest step below.
           ADMIN_PASS_HASH: '$argon2id$v=19$m=65536,t=1,p=8$qhAOqMLJoqw56/nQxq9A/g$V0qiwavNMjflt7LSPF/AqQb6+DHhOTuajEmM9D5ByAY'
+          TZ: America/New_York
         run: |
-          docker compose -f docker/docker-compose.dev.yml up -d --wait
-
-      - name: Wait for /health
-        run: |
+          go build -o "$RUNNER_TEMP/online" ./cmd/server
+          DB_PATH="$RUNNER_TEMP/app.db" nohup "$RUNNER_TEMP/online" > "$RUNNER_TEMP/api.log" 2>&1 &
           for i in {1..30}; do
-            if curl -sf http://localhost:1323/health >/dev/null; then
-              echo "api is up"
-              exit 0
-            fi
-            echo "waiting for api… ($i/30)"
-            sleep 2
+            curl -sf http://localhost:1323/health >/dev/null && { echo "api is up"; exit 0; }
+            sleep 1
           done
-          echo "api did not come up in 60s"
-          docker compose -f docker/docker-compose.dev.yml logs api
-          exit 1
+          echo "api did not come up in 30s"; cat "$RUNNER_TEMP/api.log"; exit 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        run: pip install --upgrade uv
 
       - name: Run pytest
         env:
@@ -113,10 +130,9 @@ jobs:
         run: |
           uv run --directory tests pytest -v
 
-      - name: Tear down the dev stack
-        if: always()
-        run: |
-          docker compose -f docker/docker-compose.dev.yml down -v
+      - name: API log (on failure)
+        if: failure()
+        run: cat "$RUNNER_TEMP/api.log" || true
 
   # ───────────────────────────────────────────────────────────────────────────
   # 2. Staging — runs on every branch push (not on tags).
@@ -134,10 +150,10 @@ jobs:
       matrix:
         include:
           - name: api
-            context: ./backend
-            file: ./backend/Dockerfile
+            context: "" # a binary built on the runner (step below)
+            file: ./backend/Dockerfile.ci
             image: ghcr.io/${{ github.repository_owner }}/online-api
-            target: runtime
+            target: ""
           - name: proxy
             context: .
             file: ./nginx/Dockerfile
@@ -146,6 +162,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Go (api)
+        if: matrix.name == 'api'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: false
+      - uses: actions/cache@v4
+        if: matrix.name == 'api'
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-build-${{ hashFiles('backend/go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            go-build-${{ hashFiles('backend/go.sum') }}-
+            go-build-
+      - name: Context
+        id: ctx
+        run: |
+          if [ "${{ matrix.name }}" = api ]; then
+            mkdir -p "$RUNNER_TEMP/image/data"
+            (cd backend && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
+              -ldflags "-w -s -X main.version=$(tr -d '[:space:]' < ../VERSION) -X main.commit=${GITHUB_SHA}" \
+              -o "$RUNNER_TEMP/image/app" ./cmd/server)
+            echo "context=$RUNNER_TEMP/image" >> "$GITHUB_OUTPUT"
+          else
+            echo "context=${{ matrix.context }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -171,7 +216,7 @@ jobs:
       - name: Build and push staging image
         uses: docker/build-push-action@v5
         with:
-          context: ${{ matrix.context }}
+          context: ${{ steps.ctx.outputs.context }}
           file: ${{ matrix.file }}
           target: ${{ matrix.target }}
           push: true
