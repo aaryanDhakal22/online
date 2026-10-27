@@ -1,6 +1,11 @@
 import os
+from urllib.parse import urlparse
 
 import requests
+
+
+# Prod online (the vendor's live endpoint): the suite refuses these hosts.
+PROD_HOSTS = {"ingest.quiccpos.com", "174.129.233.1"}
 
 
 class ApiClient:
@@ -22,9 +27,15 @@ class ApiClient:
         # the APP_ENV-derived defaults so the same suite can point at dev or stg.
         override = os.getenv("ONLINE_BASE_URL")
         if override:
+            env = (os.getenv("TARGET_ENV") or os.getenv("APP_ENV") or "dev").lower()
+            host = urlparse(override).hostname or ""
+            # The live vendor key sits behind prod: never aim the suite there,
+            # whichever way the URL arrives.
+            if env in ("prod", "prd") or host in PROD_HOSTS:
+                raise RuntimeError("refusing to run the online test suite against prod")
             self.backend_url = override.rstrip("/")
             self.base_url = self.backend_url
-            self.env = (os.getenv("TARGET_ENV") or os.getenv("APP_ENV") or "dev").lower()
+            self.env = env
             return
         app_env = (os.getenv("APP_ENV") or "dev").lower()
         if app_env == "dev":
