@@ -418,6 +418,11 @@ func TestVerifyConcurrentWithRotation(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		res, err := f.svc.SetByKey(ctx, "rot-"+string(rune('a'+i)))
 		require.NoError(t, err)
+		// Past the stamp throttle, so this Verify stamps "stable" after the new
+		// key's creation — on a busy box the verifiers above barely advance the
+		// fake clock, and a throttled stamp left "stable" looking unused since
+		// (Retire then rightly answered new_key_unconfirmed).
+		f.clock.advance(stampEvery)
 		ok, err := f.svc.Verify(ctx, "stable") // proves the vendor is still on "stable"
 		require.NoError(t, err)
 		require.True(t, ok)
@@ -426,4 +431,23 @@ func TestVerifyConcurrentWithRotation(t *testing.T) {
 	close(stop)
 	wg.Wait()
 	assert.NoError(t, bad)
+}
+
+// last_used_at only moves forward: a slow request's older stamp landing after
+// a newer one must not make the key look unused (which made Retire answer
+// new_key_unconfirmed under load).
+func TestTouchLastUsedOnlyForward(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	require.NoError(t, f.svc.Bootstrap(ctx, "stable"))
+	active, err := f.repo.ListActive(ctx)
+	require.NoError(t, err)
+	require.Len(t, active, 1)
+	id := active[0].ID
+	newer := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+	require.NoError(t, f.repo.TouchLastUsed(ctx, id, newer))
+	require.NoError(t, f.repo.TouchLastUsed(ctx, id, newer.Add(-time.Minute)))
+	k, err := f.repo.GetByID(ctx, id)
+	require.NoError(t, err)
+	assert.True(t, k.LastUsedAt.Equal(newer), "last_used_at went back to %s", k.LastUsedAt)
 }

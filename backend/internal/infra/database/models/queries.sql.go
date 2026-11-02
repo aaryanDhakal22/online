@@ -157,7 +157,8 @@ func (q *Queries) RetireKey(ctx context.Context, id string) (int64, error) {
 }
 
 const touchKeyLastUsed = `-- name: TouchKeyLastUsed :exec
-UPDATE api_keys SET last_used_at = ?1 WHERE id = ?2
+UPDATE api_keys SET last_used_at = ?1
+WHERE id = ?2 AND (last_used_at IS NULL OR last_used_at < ?1)
 `
 
 type TouchKeyLastUsedParams struct {
@@ -165,6 +166,8 @@ type TouchKeyLastUsedParams struct {
 	ID         string         `json:"id"`
 }
 
+// Only forward: a slow request's older stamp never overwrites a newer one
+// (fixed-width UTC text, so the comparison is chronological).
 func (q *Queries) TouchKeyLastUsed(ctx context.Context, arg TouchKeyLastUsedParams) error {
 	_, err := q.exec(ctx, q.touchKeyLastUsedStmt, touchKeyLastUsed, arg.LastUsedAt, arg.ID)
 	return err

@@ -17,6 +17,8 @@ type Querier interface {
 	ListActiveKeys(ctx context.Context) ([]ApiKey, error)
 	ListKeys(ctx context.Context) ([]ApiKey, error)
 	RetireKey(ctx context.Context, id string) (int64, error)
+	// Only forward: a slow request's older stamp never overwrites a newer one
+	// (fixed-width UTC text, so the comparison is chronological).
 	TouchKeyLastUsed(ctx context.Context, arg TouchKeyLastUsedParams) error
 	UnprimeAll(ctx context.Context) error
 }

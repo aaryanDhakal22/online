@@ -24,7 +24,10 @@ UPDATE api_keys SET status = 'active' WHERE id = :id;
 UPDATE api_keys SET status = 'inactive' WHERE id = :id AND status = 'active';
 
 -- name: TouchKeyLastUsed :exec
-UPDATE api_keys SET last_used_at = :last_used_at WHERE id = :id;
+-- Only forward: a slow request's older stamp never overwrites a newer one
+-- (fixed-width UTC text, so the comparison is chronological).
+UPDATE api_keys SET last_used_at = :last_used_at
+WHERE id = :id AND (last_used_at IS NULL OR last_used_at < :last_used_at);
 
 -- name: UnprimeAll :exec
 UPDATE api_keys SET status = 'inactive' WHERE status = 'primed';
