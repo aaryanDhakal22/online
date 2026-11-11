@@ -40,12 +40,6 @@ tasks:
     cmds:
       - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} down
 
-  devrestart:
-    desc: Restart the dev stack
-    cmds:
-      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} down
-      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} up
-
   devreset:
     desc: Reset the dev stack (drops images and rebuilds)
     cmds:
@@ -57,11 +51,6 @@ tasks:
     desc: Drop the dev sqlite volume (wipes the api_keys table)
     cmds:
       - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} down -v
-
-  dev-config:
-    desc: Print the resolved docker-compose config
-    cmds:
-      - DOPPLER_TOKEN=$(cat {{.DOPPLER_TOKEN_FILE}}) doppler run -- docker compose -f {{.DEV_CONFIG}} config
 
   dev-logs:
     desc: "Tail logs for a service: task dev-logs -- api"
@@ -107,21 +96,3 @@ tasks:
     desc: Send the prod docker-compose to the Lightsail box
     cmds:
       - scp {{.PROD_CONFIG}} lightsail-api:/opt/ingest/docker-compose.yml
-
-  # ──────────────────────────────────────────────────────────────────────
-  # Versioning — see ../scripts/version.sh. Releases (tags) go through the
-  # quicc-ops deploy/release.sh only; there is no release task here.
-  # ──────────────────────────────────────────────────────────────────────
-
-  version-current:
-    desc: Show the current version (./VERSION)
-    silent: true
-    cmds:
-      - ../scripts/version.sh current
-
-  version-describe:
-    desc: VERSION + git describe diagnostics
-    silent: true
-    cmds:
-      - ../scripts/version.sh describe
-

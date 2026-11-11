@@ -52,6 +52,6 @@ The fixtures in `conftest.py` read these. Doppler wires them.
 - **Treat order bodies as opaque.** online/ hashes the body and forwards
   the bytes verbatim. Tests should send arbitrary JSON and assert the
   202 + response shape, not the message that ends up on SQS.
-- **Synthetic data, not PII.** `data.py` carries large fixtures with
-  realistic-looking customer info — fine for legacy interactive use but
-  prefer minimal synthetic blobs for new pytest cases (`{"i": 1}` is fine).
+- **Synthetic data, not PII.** Prefer minimal synthetic blobs for pytest
+  cases (`{"i": 1}` is fine); the console's `testdata.py` holds the real
+  vendor shapes.

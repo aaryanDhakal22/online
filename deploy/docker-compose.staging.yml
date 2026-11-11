@@ -37,14 +37,10 @@ x-api: &api
     OTEL_EXPORTER_OTLP_ENDPOINT:
     OTEL_EXPORTER_OTLP_HEADERS:
     OTEL_SERVICE_NAME:
-    PUSHOVER_APP_TOKEN:
-    NOTIFICATION_BOSS:
-    NOTIFICATION_AARYAN:
     # Fixed here, not from Doppler: both slots must listen on 1323 inside and
     # open the same database file.
     SERVER_PORT: "1323"
     DB_PATH: /data/app.db
-    TRUST_PROXY: "1"
     TZ: America/New_York
   volumes:
     - online-data:/data
