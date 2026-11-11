@@ -19,11 +19,6 @@ import pytest
 
 from client import ApiClient
 
-# prod_test.py is a one-shot probe, not a pytest suite: it matches pytest's
-# `*_test.py` pattern and calls load_env() at import.
-collect_ignore = ["prod_test.py"]
-
-
 @pytest.fixture(scope="session")
 def client():
     c = ApiClient("api/v1")

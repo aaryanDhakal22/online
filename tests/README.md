@@ -3,7 +3,6 @@
 | File | What it is | When to use |
 |---|---|---|
 | `test_api.py` | pytest, asserts on responses | CI; default. Run via `task test`. |
-| `prod_test.py` | one-shot probe (reads `/getKey` only) | Not collected by pytest; `client.py` refuses `APP_ENV=prod`. |
 | `test_deploy.py` | runs `deploy/deploy.sh` in `DRY_RUN` against fake `docker`/`curl`/`nginx` | Offline; no stack needed. |
 
 The old interactive harness (`test.py` / `main.py`, `task test-script`) was
